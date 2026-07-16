@@ -1161,7 +1161,7 @@ function selectHousehold(id){
               </div>
               ${v.Email?`<p class="text-xs text-info/70 mt-0.5 truncate"><a href="mailto:${esc(v.Email)}" class="hover:underline">${esc(v.Email)}</a></p>`:''}
               ${v.RegDate?`<p class="text-[11px] text-muted mt-0.5">Registered: ${fmtDate(v.RegDate)}</p>`:''}
-              ${v.LastGenDate?`<p class="text-[11px] text-muted">Voted General: ${fmtDate(v.LastGenDate)}</p>`:''}
+              ${v.LastGenDate?`<p class="text-[11px] text-muted">Voted General: ${fmtYYMM(v.LastGenDate)}</p>`:''}
               ${v.LastPrimaryDate?`<p class="text-[11px] text-muted">Voted Primary: ${fmtYYMM(v.LastPrimaryDate)}</p>`:''}
             </div>
           </div>
