@@ -377,6 +377,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 const parseDate=d=>{if(!d)return null;const s=String(d).trim();if(!s)return null;/* MM/DD/YYYY */const m=s.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})$/);if(m)return new Date(+m[3],+m[1]-1,+m[2]);/* YYYY-MM-DD or ISO */let dt=new Date(s);return isNaN(dt.getTime())?null:dt};
 const fmtDate=d=>{const dt=parseDate(d);if(!dt)return d||'—';return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
+const fmtYYMM=d=>{if(!d)return'—';const s=String(d).trim();const m=s.match(/^(\d{2})(\d{2})$/);if(!m)return d;const yr=2000+parseInt(m[1]);const mo=parseInt(m[2]);if(mo<1||mo>12)return d;return new Date(yr,mo-1).toLocaleDateString('en-US',{month:'long',year:'numeric'})};
 const calcAge=d=>{const dt=parseDate(d);if(!dt)return null;const today=new Date();let age=today.getFullYear()-dt.getFullYear();const m=today.getMonth()-dt.getMonth();if(m<0||(m===0&&today.getDate()<dt.getDate()))age--;return age};
 const fmtDateTime=dt=>{if(!dt)return'—';try{return new Date(dt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}catch{return dt}};
 const fmtPhone=p=>{if(!p)return'—';const c=p.replace(/\D/g,'');if(c.length===10)return`(${c.slice(0,3)}) ${c.slice(3,6)}-${c.slice(6)}`;if(c.length===11&&c[0]==='1')return`(${c.slice(1,4)}) ${c.slice(4,7)}-${c.slice(7)}`;return p};
@@ -1161,6 +1162,7 @@ function selectHousehold(id){
               ${v.Email?`<p class="text-xs text-info/70 mt-0.5 truncate"><a href="mailto:${esc(v.Email)}" class="hover:underline">${esc(v.Email)}</a></p>`:''}
               ${v.RegDate?`<p class="text-[11px] text-muted mt-0.5">Registered: ${fmtDate(v.RegDate)}</p>`:''}
               ${v.LastGenDate?`<p class="text-[11px] text-muted">Voted General: ${fmtDate(v.LastGenDate)}</p>`:''}
+              ${v.LastPrimaryDate?`<p class="text-[11px] text-muted">Voted Primary: ${fmtYYMM(v.LastPrimaryDate)}</p>`:''}
             </div>
           </div>
           <details class="mt-2.5">
