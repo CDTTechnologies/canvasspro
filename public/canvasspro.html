@@ -140,6 +140,10 @@ textarea{resize:vertical;min-height:80px}
           <i class="fa-solid fa-file-import text-base mb-0.5"></i><span class="text-xs">Import</span>
           <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
         </button>
+        <button id="navUsersDesktop" onclick="switchView('users')" data-nav="users" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+          <i class="fa-solid fa-users-gear text-base mb-0.5"></i><span class="text-xs">Users</span>
+          <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
+        </button>
       </nav>
       <div class="flex items-center gap-3">
         <span id="gpsIndicator" class="hidden text-ok text-xs flex items-center gap-1"><span class="pulse-dot w-2 h-2 rounded-full bg-ok inline-block"></span>GPS</span>
@@ -167,6 +171,25 @@ textarea{resize:vertical;min-height:80px}
         <div id="mapContainer" class="w-full h-full"></div>
       </div>
       <div id="importView" class="hidden flex-1 overflow-y-auto p-4 md:p-6"></div>
+      <div id="usersView" class="hidden flex-1 overflow-y-auto p-4 md:p-6"></div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div id="userModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display:none">
+    <div class="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+      <h3 id="userModalTitle" class="font-display text-lg font-bold mb-4">Add User</h3>
+      <input type="hidden" id="umId">
+      <div class="space-y-3">
+        <div><label class="block text-xs font-medium text-muted mb-1">Full Name</label><input id="umName" type="text" placeholder="John Smith" class="w-full text-sm"></div>
+        <div><label class="block text-xs font-medium text-muted mb-1">Username</label><input id="umUsername" type="text" placeholder="jsmith" class="w-full text-sm"></div>
+        <div><label class="block text-xs font-medium text-muted mb-1">Password <span id="umPwHint" class="text-muted/50">(leave blank to keep current)</span></label><input id="umPassword" type="password" placeholder="••••••••" class="w-full text-sm"></div>
+        <div><label class="block text-xs font-medium text-muted mb-1">Role</label><select id="umRole" class="w-full text-sm"><option value="admin">Admin</option><option value="staff">Staff</option><option value="volunteer">Volunteer</option></select></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button onclick="saveUser()" class="btn btn-primary flex-1 justify-center"><i class="fa-solid fa-check"></i> Save</button>
+        <button onclick="closeUserModal()" class="btn btn-secondary flex-1 justify-center">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -185,6 +208,10 @@ textarea{resize:vertical;min-height:80px}
     </button>
     <button id="navImportMobile" onclick="switchView('import')" data-nav="import" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
       <i class="fa-solid fa-file-import text-lg"></i><span class="text-[10px] font-medium">Import</span>
+      <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
+    </button>
+    <button id="navUsersMobile" onclick="switchView('users')" data-nav="users" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+      <i class="fa-solid fa-users-gear text-lg"></i><span class="text-[10px] font-medium">Users</span>
       <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
     </button>
   </nav>
@@ -423,8 +450,11 @@ async function showApp(){
   /* Hide Import for non-admin users */
   const isAdmin=S.user.role==='admin';
   const impD=$('navImportDesktop'),impM=$('navImportMobile');
+  const usrD=$('navUsersDesktop'),usrM=$('navUsersMobile');
   if(impD)impD.style.display=isAdmin?'':'none';
   if(impM)impM.style.display=isAdmin?'':'none';
+  if(usrD)usrD.style.display=isAdmin?'':'none';
+  if(usrM)usrM.style.display=isAdmin?'':'none';
   S.isAdmin=isAdmin;
   await loadData();switchView('dashboard');
 }
@@ -876,7 +906,7 @@ async function loadSampleData(){
 /* ========== VIEW SWITCHING ========== */
 function switchView(view){
   S.currentView=view;
-  ['dashboard','search','map','import'].forEach(v=>{$(v+'View').classList.toggle('hidden',v!==view)});
+  ['dashboard','search','map','import','users'].forEach(v=>{$(v+'View').classList.toggle('hidden',v!==view)});
   document.querySelectorAll('[data-nav]').forEach(btn=>{
     const isActive=btn.dataset.nav===view;
     btn.classList.toggle('active',isActive);btn.classList.toggle('text-fg',isActive);
@@ -885,6 +915,7 @@ function switchView(view){
   if(view==='search')renderSearchView();
   if(view==='map')initMap();
   if(view==='import')renderImportView();
+  if(view==='users')renderUsersView();
   if(view!=='map'&&S.map)setTimeout(()=>S.map.invalidateSize(),100);
 }
 
@@ -1213,6 +1244,89 @@ function submitVisit(id){
   if(S.currentView==='map')updateMapMarkers();if(S.currentView==='search')doSearch();
 }
 
+/* ========== USER MANAGEMENT ========== */
+const ROLE_CFG={admin:{label:'Admin',color:'#D4943A',bg:'rgba(212,148,58,0.12)',border:'rgba(212,148,58,0.25)'},staff:{label:'Staff',color:'#3FB950',bg:'rgba(63,185,80,0.12)',border:'rgba(63,185,80,0.25)'},volunteer:{label:'Volunteer',color:'#58A6FF',bg:'rgba(88,166,255,0.12)',border:'rgba(88,166,255,0.25)'}};
+
+async function renderUsersView(){
+  const v=$('usersView');
+  v.innerHTML='<div class="flex items-center justify-center py-20"><i class="fa-solid fa-spinner fa-spin text-accent text-2xl"></i></div>';
+  let users=[];
+  try{const res=await fetch('/api/users');if(res.ok)users=await res.json()}catch(e){toast('Failed to load users','err');return}
+  const rc=r=>ROLE_CFG[r]||ROLE_CFG.volunteer;
+  v.innerHTML=`
+    <div class="max-w-2xl mx-auto fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="font-display text-2xl font-bold">Manage Users</h2>
+          <p class="text-muted text-sm">${users.length} user${users.length!==1?'s':''}</p>
+        </div>
+        <button onclick="openUserModal()" class="btn btn-primary text-sm"><i class="fa-solid fa-plus"></i> Add User</button>
+      </div>
+      <div class="space-y-2">
+        ${users.map(u=>{const c=rc(u.role);return`
+        <div class="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:${c.bg};color:${c.color};border:1px solid ${c.border}">${esc(u.name.split(' ').map(w=>w[0]).join('').slice(0,2))}</div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-sm">${esc(u.name)} ${u.id===S.user.id?'<span class="text-muted text-xs font-normal">(you)</span>':''}</p>
+            <p class="text-xs text-muted">@${esc(u.username)} · Created ${new Date(u.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg text-xs font-semibold flex-shrink-0" style="background:${c.bg};color:${c.color};border:1px solid ${c.border}">${c.label}</span>
+          <div class="flex gap-1 flex-shrink-0">
+            <button onclick='openUserModal(${JSON.stringify(u)})' class="btn btn-secondary text-xs py-1.5 px-2.5" title="Edit"><i class="fa-solid fa-pen"></i></button>
+            ${u.id!==S.user.id?`<button onclick="deleteUser('${u.id}','${esc(u.name)}')" class="btn btn-secondary text-xs py-1.5 px-2.5 hover:!bg-err/10 hover:!text-err hover:!border-err/20" title="Delete"><i class="fa-solid fa-trash"></i></button>`:''}
+          </div>
+        </div>`}).join('')}
+      </div>
+    </div>`;
+}
+
+function openUserModal(user){
+  $('umId').value=user?user.id:'';
+  $('umName').value=user?user.name:'';
+  $('umUsername').value=user?user.username:'';
+  $('umPassword').value='';
+  $('umRole').value=user?user.role:'volunteer';
+  $('userModalTitle').textContent=user?'Edit User':'Add User';
+  $('umPwHint').textContent=user?'(leave blank to keep current)':'';
+  $('umUsername').readOnly=!!user;
+  $('umUsername').style.opacity=user?0.5:1;
+  const m=$('userModal');m.classList.remove('hidden');m.style.display='flex';
+}
+function closeUserModal(){const m=$('userModal');m.classList.add('hidden');m.style.display='none'}
+
+async function saveUser(){
+  const id=$('umId').value;
+  const name=$('umName').value.trim();
+  const username=$('umUsername').value.trim().toLowerCase();
+  const password=$('umPassword').value;
+  const role=$('umRole').value;
+  if(!name||!username){toast('Name and username are required','warn');return}
+  if(!id&&!password){toast('Password is required for new users','warn');return}
+  try{
+    let res;
+    if(id){
+      const body={name,role};
+      if(password)body.password=password;
+      res=await fetch(`/api/users/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    }else{
+      res=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password,name,role})});
+    }
+    if(!res.ok){const e=await res.json().catch(()=>({}));toast(e.error||'Failed to save user','err');return}
+    closeUserModal();toast(id?'User updated':'User created','ok');renderUsersView();
+    /* If editing self, update session */
+    if(id===S.user.id){S.user.name=name;S.user.role=role;$('userName').textContent=name;$('userRole').textContent=role;$('userAvatar').textContent=name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+  }catch(e){toast('Error: '+e.message,'err')}
+}
+
+async function deleteUser(id,name){
+  if(!confirm(`Delete user "${name}"? This cannot be undone.`))return;
+  try{
+    const res=await fetch(`/api/users/${id}`,{method:'DELETE'});
+    if(!res.ok){const e=await res.json().catch(()=>({}));toast(e.error||'Failed to delete','err');return}
+    toast(`Deleted ${name}`,'ok');renderUsersView();
+  }catch(e){toast('Error: '+e.message,'err')}
+}
+
 /* ========== GPS ========== */
 function initGPS(){
   if(!navigator.geolocation)return;
@@ -1226,7 +1340,8 @@ function initGPS(){
 function init(){
   initAuth();initGPS();
   $('visitModal').onclick=e=>{if(e.target===$('visitModal'))closeVisitModal()};
-  document.onkeydown=e=>{if(e.key==='Escape'){if(!$('visitModal').classList.contains('hidden'))closeVisitModal();else if(!$('detailsPanel').classList.contains('hidden'))closeDetails()}};
+  $('userModal').onclick=e=>{if(e.target===$('userModal'))closeUserModal()};
+  document.onkeydown=e=>{if(e.key==='Escape'){if(!$('userModal').classList.contains('hidden')&&$('userModal').style.display!=='none')closeUserModal();else if(!$('visitModal').classList.contains('hidden'))closeVisitModal();else if(!$('detailsPanel').classList.contains('hidden'))closeDetails()}};
 }
 init();
 </script>
