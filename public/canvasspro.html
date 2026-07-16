@@ -1134,6 +1134,13 @@ function selectHousehold(id){
         <button onclick="addTagPrompt('${id}')" class="text-[11px] text-muted hover:text-accent border border-dashed border-border rounded-full px-2.5 py-0.5 hover:border-accent/40">+ Tag</button>
       </div>
     </div>
+    ${h.lat&&h.lng?`<div class="px-4 py-3 border-b border-border">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs text-muted font-medium uppercase tracking-wider">Street View</p>
+        <a href="https://www.google.com/maps/@${h.lat},${h.lng},3a,75y,0h,90t/data=!3m1!1e3" target="_blank" rel="noopener" class="text-[11px] text-info hover:underline"><i class="fa-solid fa-up-right-from-square mr-0.5"></i>Open in Maps</a>
+      </div>
+      <div class="rounded-lg overflow-hidden border border-border/50"><iframe src="https://maps.google.com/maps?layer=c&cbll=${h.lat},${h.lng}&cbp=11,0,,0,0&output=svembed" width="100%" height="160" style="border:0;display:block" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+    </div>`:''}
     <div class="p-4 border-b border-border">
       <p class="text-xs text-muted font-medium mb-3 uppercase tracking-wider">Registered Voters (${h.voters.length})</p>
       <div class="space-y-3">
