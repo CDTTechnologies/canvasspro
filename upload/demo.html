@@ -136,7 +136,7 @@ textarea{resize:vertical;min-height:80px}
           <i class="fa-solid fa-map-location-dot text-base mb-0.5"></i><span class="text-xs">Map</span>
           <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
         </button>
-        <button onclick="switchView('import')" data-nav="import" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+        <button id="navImportDesktop" onclick="switchView('import')" data-nav="import" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
           <i class="fa-solid fa-file-import text-base mb-0.5"></i><span class="text-xs">Import</span>
           <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
         </button>
@@ -183,7 +183,7 @@ textarea{resize:vertical;min-height:80px}
       <i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[10px] font-medium">Map</span>
       <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
     </button>
-    <button onclick="switchView('import')" data-nav="import" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+    <button id="navImportMobile" onclick="switchView('import')" data-nav="import" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
       <i class="fa-solid fa-file-import text-lg"></i><span class="text-[10px] font-medium">Import</span>
       <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
     </button>
@@ -420,6 +420,12 @@ async function showApp(){
   $('loginScreen').classList.add('hidden');$('appShell').classList.remove('hidden');
   $('userName').textContent=S.user.name;$('userRole').textContent=S.user.role;
   $('userAvatar').textContent=S.user.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  /* Hide Import for non-admin users */
+  const isAdmin=S.user.role==='admin';
+  const impD=$('navImportDesktop'),impM=$('navImportMobile');
+  if(impD)impD.style.display=isAdmin?'':'none';
+  if(impM)impM.style.display=isAdmin?'':'none';
+  S.isAdmin=isAdmin;
   await loadData();switchView('dashboard');
 }
 
@@ -905,7 +911,7 @@ function renderDashboard(){
           <h2 class="font-display text-2xl font-bold">Campaign Dashboard</h2>
           <p class="text-muted text-sm">${total?`Tracking ${total.toLocaleString()} households, ${voters.toLocaleString()} voters`:'No data loaded — import a CSV to begin'}</p>
         </div>
-        ${total?`<button onclick="switchView('import')" class="btn btn-secondary text-sm"><i class="fa-solid fa-file-import"></i> Import More</button>`:`<button onclick="switchView('import')" class="btn btn-primary text-sm"><i class="fa-solid fa-file-import"></i> Import CSV</button>`}
+        ${S.isAdmin?(total?`<button onclick="switchView('import')" class="btn btn-secondary text-sm"><i class="fa-solid fa-file-import"></i> Import More</button>`:`<button onclick="switchView('import')" class="btn btn-primary text-sm"><i class="fa-solid fa-file-import"></i> Import CSV</button>`):''}
       </div>
       ${total?`
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -949,8 +955,8 @@ function renderDashboard(){
         <div class="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-file-csv text-accent text-3xl"></i></div>
         <h3 class="font-display text-xl font-bold mb-2">No Voter Data Loaded</h3>
         <p class="text-muted text-sm mb-6 max-w-md mx-auto">Import your <code class="text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded text-xs">merged_data_geocoded.csv</code> file to get started.</p>
-        <button onclick="switchView('import')" class="btn btn-primary text-base py-3 px-8"><i class="fa-solid fa-file-import"></i> Import Voter Data</button>
-        <p class="text-muted text-xs mt-4">or <button onclick="loadSampleData();switchView('dashboard')" class="text-accent hover:underline">load sample data</button> to try the app</p>
+        ${S.isAdmin?`<button onclick="switchView('import')" class="btn btn-primary text-base py-3 px-8"><i class="fa-solid fa-file-import"></i> Import Voter Data</button>`:''}
+        <p class="text-muted text-xs mt-4">${S.isAdmin?'or ':''}<button onclick="loadSampleData();switchView('dashboard')" class="text-accent hover:underline">load sample data</button> ${S.isAdmin?'to try the app':'to try the app'}</p>
       </div>`}
     </div>`;
 }
