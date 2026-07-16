@@ -1,0 +1,55 @@
+# =============================================================================
+# Systemd Service — CanvassPro (Next.js Application)
+# =============================================================================
+#
+# Install:
+#   1. Edit the placeholders below (User, WorkingDirectory, ExecStart)
+#   2. Copy to /etc/systemd/system/canvasspro.service
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable canvasspro
+#   5. sudo systemctl start canvasspro
+#
+# The setup.sh script generates this automatically. This file is a reference.
+# =============================================================================
+
+[Unit]
+Description=CanvassPro — Next.js Application
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+
+# --- User & Directory ---
+# Replace 'canvasspro' with your deploy user
+User=canvasspro
+Group=canvasspro
+WorkingDirectory=/opt/canvasspro
+
+# --- Environment ---
+EnvironmentFile=/opt/canvasspro/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# --- Command ---
+# Replace the path with your actual Bun binary location
+# Find it with: which bun  (typically /root/.bun/bin/bun or /home/canvasspro/.bun/bin/bun)
+ExecStart=/root/.bun/bin/bun /opt/canvasspro/.next/standalone/server.js
+
+# --- Restart Policy ---
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# --- Logging ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=canvasspro
+
+# --- Security Hardening ---
+NoNewPrivileges=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

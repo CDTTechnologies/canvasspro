@@ -1,0 +1,109 @@
+// =============================================================================
+// Production Prisma Schema — PostgreSQL
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── CanvassPro Data Models ──────────────────────────────────────────────
+
+model AppUser {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ImportMeta {
+  id             String   @id @default(cuid())
+  fileName       String   @default("")
+  headers        String   // JSON array
+  voterCount     Int      @default(0)
+  householdCount Int      @default(0)
+  createdAt      DateTime @default(now())
+}
+
+model Voter {
+  id          String   @id @default(cuid())
+  data        String   // JSON — all 108+ fields
+  householdId String
+  lastName    String   @default("")
+  firstName   String   @default("")
+  address     String   @default("")
+  city        String   @default("")
+  state       String   @default("")
+  zipCode     String   @default("")
+  party       String   @default("")
+  phone       String   @default("")
+  email       String   @default("")
+  createdAt   DateTime @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@index([lastName])
+  @@index([party])
+}
+
+model Household {
+  id                 String   @id @default(cuid())
+  householdKey       String   @unique
+  address            String   @default("")
+  apt                String   @default("")
+  fullAddress        String   @default("")
+  city               String   @default("")
+  state              String   @default("")
+  zip                String   @default("")
+  lat                Float?
+  lng                Float?
+  precinct           String   @default("")
+  district           String   @default("")
+  senateDistrict     String   @default("")
+  commissionDistrict String   @default("")
+  schoolDistrict     String   @default("")
+  subdivision        String   @default("")
+  zoning             String   @default("")
+  neighborhoodCode   String   @default("")
+  landUse            String   @default("")
+  propertyType       String   @default("")
+  matchType          String   @default("")
+  status             String   @default("not_visited")
+  assignedTo         String   @default("")
+  notes              String   @default("")
+  tags               String   @default("[]")
+  voterCount         Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  voters  Voter[]
+  visits  Visit[]
+
+  @@index([status])
+  @@index([precinct])
+  @@index([assignedTo])
+}
+
+model Visit {
+  id          String   @id @default(cuid())
+  householdId String
+  date        String
+  time        String   @default("")
+  outcome     String   @default("")
+  statusAfter String   @default("not_visited")
+  notes       String   @default("")
+  volunteer   String   @default("")
+  createdAt   DateTime @default(now())
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+}

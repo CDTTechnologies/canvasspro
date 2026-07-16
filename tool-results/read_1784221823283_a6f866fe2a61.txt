@@ -1,0 +1,1226 @@
+     1→<!DOCTYPE html>
+     2→<html lang="en">
+     3→<head>
+     4→<meta charset="UTF-8">
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+     6→<title>CanvassPro — Campaign Canvassing Tool</title>
+     7→<script src="https://cdn.tailwindcss.com"></script>
+     8→<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+     9→<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    10→<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+    11→<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+    12→<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    13→<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    14→<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    15→<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    16→<script>
+    17→tailwind.config={theme:{extend:{colors:{bg:'#0D1117',card:'#161B22',cardhover:'#1C2333',border:'#30363D',fg:'#E6EDF3',muted:'#8B949E',accent:'#D4943A',accentlt:'#F0C878',ok:'#3FB950',err:'#F85149',warn:'#D29922',info:'#58A6FF',purple:'#BC8CFF'},fontFamily:{display:['Space Grotesk','sans-serif'],body:['DM Sans','sans-serif']}}}}
+    18→</script>
+    19→<style>
+    20→*{box-sizing:border-box;margin:0;padding:0}
+    21→html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:#0D1117;color:#E6EDF3}
+    22→::-webkit-scrollbar{width:6px;height:6px}
+    23→::-webkit-scrollbar-track{background:#161B22}
+    24→::-webkit-scrollbar-thumb{background:#30363D;border-radius:3px}
+    25→::-webkit-scrollbar-thumb:hover{background:#484F58}
+    26→.leaflet-container{background:#0D1117!important;font-family:'DM Sans',sans-serif!important}
+    27→.leaflet-popup-content-wrapper{background:#161B22!important;color:#E6EDF3!important;border:1px solid #30363D!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important}
+    28→.leaflet-popup-tip{background:#161B22!important;border:1px solid #30363D!important}
+    29→.leaflet-popup-close-button{color:#8B949E!important}
+    30→.marker-cluster-small{background:rgba(212,148,58,.25)!important}
+    31→.marker-cluster-small div{background:rgba(212,148,58,.5)!important;color:#fff!important;font-family:'Space Grotesk',sans-serif!important;font-weight:600!important}
+    32→.marker-cluster-medium{background:rgba(212,148,58,.3)!important}
+    33→.marker-cluster-medium div{background:rgba(212,148,58,.6)!important;color:#fff!important;font-family:'Space Grotesk',sans-serif!important;font-weight:600!important}
+    34→.marker-cluster-large{background:rgba(212,148,58,.35)!important}
+    35→.marker-cluster-large div{background:rgba(212,148,58,.7)!important;color:#fff!important;font-family:'Space Grotesk',sans-serif!important;font-weight:600!important}
+    36→.status-btn{transition:all .15s ease;position:relative;overflow:hidden}
+    37→.status-btn:active{transform:scale(.95)}
+    38→.status-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.1);opacity:0;transition:opacity .15s}
+    39→.status-btn:hover::after{opacity:1}
+    40→.slide-in{animation:slideIn .3s ease forwards}
+    41→.slide-out{animation:slideOut .25s ease forwards}
+    42→@keyframes slideIn{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    43→@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(-100%);opacity:0}}
+    44→.fade-in{animation:fadeIn .3s ease}
+    45→@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    46→.pulse-dot{animation:pulse 2s infinite}
+    47→@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+    48→.glass{background:rgba(22,27,34,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    49→.nav-item{transition:all .2s}
+    50→.nav-item.active{color:#D4943A}
+    51→.nav-item.active .nav-indicator{transform:scaleX(1)}
+    52→.nav-indicator{transform:scaleX(0);transition:transform .2s}
+    53→.field-row:hover{background:rgba(212,148,58,.05)}
+    54→.toast{animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards}
+    55→@keyframes toastIn{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}
+    56→@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(20px)}}
+    57→@media(max-width:768px){.desktop-only{display:none!important}.mobile-only{display:flex!important}}
+    58→@media(min-width:769px){.mobile-only{display:none!important}}
+    59→.stat-card{position:relative;overflow:hidden}
+    60→.stat-card::before{content:'';position:absolute;top:-50%;right:-50%;width:100%;height:100%;background:radial-gradient(circle,rgba(212,148,58,.08) 0%,transparent 70%);pointer-events:none}
+    61→input,select,textarea{background:#0D1117!important;border:1px solid #30363D!important;color:#E6EDF3!important;border-radius:8px!important;padding:10px 14px!important;font-family:'DM Sans',sans-serif!important;font-size:14px!important;outline:none!important;transition:border-color .2s!important}
+    62→input:focus,select:focus,textarea:focus{border-color:#D4943A!important;box-shadow:0 0 0 3px rgba(212,148,58,.15)!important}
+    63→textarea{resize:vertical;min-height:80px}
+    64→.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+    65→.btn:active{transform:scale(.97)}
+    66→.btn-primary{background:#D4943A;color:#0D1117}.btn-primary:hover{background:#E0A44A}
+    67→.btn-secondary{background:#30363D;color:#E6EDF3}.btn-secondary:hover{background:#3D444D}
+    68→.btn-danger{background:rgba(248,81,73,.15);color:#F85149;border:1px solid rgba(248,81,73,.3)}.btn-danger:hover{background:rgba(248,81,73,.25)}
+    69→.btn-ok{background:rgba(63,185,80,.15);color:#3FB950;border:1px solid rgba(63,185,80,.3)}.btn-ok:hover{background:rgba(63,185,80,.25)}
+    70→.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500;background:rgba(212,148,58,.12);color:#F0C878;border:1px solid rgba(212,148,58,.2)}
+    71→.detect-card{transition:all .2s;border:1px solid #30363D}
+    72→.detect-card:hover{border-color:rgba(212,148,58,.3)}
+    73→</style>
+    74→</head>
+    75→<body>
+    76→
+    77→<!-- Login Screen -->
+    78→<div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center" style="background:linear-gradient(135deg,#0D1117 0%,#161B22 40%,#1a1510 100%)">
+    79→  <div class="absolute inset-0 overflow-hidden pointer-events-none">
+    80→    <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full" style="background:radial-gradient(circle,rgba(212,148,58,.08),transparent 70%)"></div>
+    81→    <div class="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full" style="background:radial-gradient(circle,rgba(212,148,58,.05),transparent 70%)"></div>
+    82→  </div>
+    83→  <div class="relative w-full max-w-md mx-4 p-8 rounded-2xl border border-border bg-card fade-in">
+    84→    <div class="text-center mb-8">
+    85→      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 mb-4">
+    86→        <i class="fa-solid fa-clipboard-check text-accent text-2xl"></i>
+    87→      </div>
+    88→      <h1 class="font-display text-3xl font-bold text-fg tracking-tight">CanvassPro</h1>
+    89→      <p class="text-muted text-sm mt-1">Campaign Canvassing Tool</p>
+    90→    </div>
+    91→    <div id="loginError" class="hidden mb-4 p-3 rounded-lg bg-err/10 border border-err/30 text-err text-sm text-center"></div>
+    92→    <div class="space-y-4">
+    93→      <div>
+    94→        <label class="block text-sm font-medium text-muted mb-1.5">Username</label>
+    95→        <input id="loginUser" type="text" placeholder="Enter username" class="w-full" autocomplete="username">
+    96→      </div>
+    97→      <div>
+    98→        <label class="block text-sm font-medium text-muted mb-1.5">Password</label>
+    99→        <input id="loginPass" type="password" placeholder="Enter password" class="w-full" autocomplete="current-password">
+   100→      </div>
+   101→      <button id="loginBtn" class="btn btn-primary w-full justify-center text-base py-3 mt-2">
+   102→        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+   103→      </button>
+   104→    </div>
+   105→    <div class="mt-6 p-4 rounded-lg bg-bg/50 border border-border">
+   106→      <p class="text-xs text-muted mb-2 font-medium">Demo Accounts:</p>
+   107→      <div class="space-y-1 text-xs text-muted">
+   108→        <div class="flex justify-between"><span>Admin</span><code class="text-fg/70">admin / admin123</code></div>
+   109→        <div class="flex justify-between"><span>Staff</span><code class="text-fg/70">staff / staff123</code></div>
+   110→        <div class="flex justify-between"><span>Volunteer</span><code class="text-fg/70">volunteer / vol123</code></div>
+   111→      </div>
+   112→    </div>
+   113→  </div>
+   114→</div>
+   115→
+   116→<!-- App Shell -->
+   117→<div id="appShell" class="hidden h-full flex flex-col">
+   118→  <header class="glass border-b border-border flex-shrink-0 z-40">
+   119→    <div class="flex items-center justify-between h-14 px-4">
+   120→      <div class="flex items-center gap-3">
+   121→        <div class="flex items-center gap-2">
+   122→          <i class="fa-solid fa-clipboard-check text-accent"></i>
+   123→          <span class="font-display font-bold text-lg text-fg tracking-tight desktop-only">CanvassPro</span>
+   124→        </div>
+   125→      </div>
+   126→      <nav class="flex items-center gap-1 desktop-only">
+   127→        <button onclick="switchView('dashboard')" data-nav="dashboard" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+   128→          <i class="fa-solid fa-chart-pie text-base mb-0.5"></i><span class="text-xs">Dashboard</span>
+   129→          <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
+   130→        </button>
+   131→        <button onclick="switchView('search')" data-nav="search" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+   132→          <i class="fa-solid fa-magnifying-glass text-base mb-0.5"></i><span class="text-xs">Search</span>
+   133→          <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
+   134→        </button>
+   135→        <button onclick="switchView('map')" data-nav="map" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+   136→          <i class="fa-solid fa-map-location-dot text-base mb-0.5"></i><span class="text-xs">Map</span>
+   137→          <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
+   138→        </button>
+   139→        <button onclick="switchView('import')" data-nav="import" class="nav-item px-4 py-2 rounded-lg text-sm font-medium text-muted hover:text-fg flex flex-col items-center relative">
+   140→          <i class="fa-solid fa-file-import text-base mb-0.5"></i><span class="text-xs">Import</span>
+   141→          <div class="nav-indicator absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full"></div>
+   142→        </button>
+   143→      </nav>
+   144→      <div class="flex items-center gap-3">
+   145→        <span id="gpsIndicator" class="hidden text-ok text-xs flex items-center gap-1"><span class="pulse-dot w-2 h-2 rounded-full bg-ok inline-block"></span>GPS</span>
+   146→        <div class="flex items-center gap-2">
+   147→          <div id="userAvatar" class="w-8 h-8 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-accent text-xs font-bold"></div>
+   148→          <div class="desktop-only">
+   149→            <p id="userName" class="text-sm font-medium text-fg leading-tight"></p>
+   150→            <p id="userRole" class="text-xs text-muted leading-tight capitalize"></p>
+   151→          </div>
+   152→          <button onclick="logout()" class="text-muted hover:text-err ml-2" title="Sign Out"><i class="fa-solid fa-right-from-bracket"></i></button>
+   153→        </div>
+   154→      </div>
+   155→    </div>
+   156→  </header>
+   157→
+   158→  <div class="flex-1 flex overflow-hidden relative">
+   159→    <aside id="detailsPanel" class="hidden absolute md:relative z-30 w-full md:w-[400px] lg:w-[440px] h-full bg-card border-r border-border flex-shrink-0 flex flex-col overflow-hidden" style="box-shadow:4px 0 24px rgba(0,0,0,.4)">
+   160→      <div id="detailsPanelContent" class="flex-1 overflow-y-auto"></div>
+   161→    </aside>
+   162→    <div id="viewsContainer" class="flex-1 overflow-hidden flex flex-col">
+   163→      <div id="dashboardView" class="flex-1 overflow-y-auto p-4 md:p-6"></div>
+   164→      <div id="searchView" class="hidden flex-1 overflow-hidden flex flex-col"></div>
+   165→      <div id="mapView" class="hidden flex-1 relative">
+   166→        <div id="mapFilters" class="absolute top-3 left-3 right-3 z-20 flex gap-2 flex-wrap"></div>
+   167→        <div id="mapContainer" class="w-full h-full"></div>
+   168→      </div>
+   169→      <div id="importView" class="hidden flex-1 overflow-y-auto p-4 md:p-6"></div>
+   170→    </div>
+   171→  </div>
+   172→
+   173→  <nav class="mobile-only glass border-t border-border flex-shrink-0 z-40 flex items-center justify-around h-16">
+   174→    <button onclick="switchView('dashboard')" data-nav="dashboard" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+   175→      <i class="fa-solid fa-chart-pie text-lg"></i><span class="text-[10px] font-medium">Dashboard</span>
+   176→      <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
+   177→    </button>
+   178→    <button onclick="switchView('search')" data-nav="search" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+   179→      <i class="fa-solid fa-magnifying-glass text-lg"></i><span class="text-[10px] font-medium">Search</span>
+   180→      <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
+   181→    </button>
+   182→    <button onclick="switchView('map')" data-nav="map" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+   183→      <i class="fa-solid fa-map-location-dot text-lg"></i><span class="text-[10px] font-medium">Map</span>
+   184→      <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
+   185→    </button>
+   186→    <button onclick="switchView('import')" data-nav="import" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
+   187→      <i class="fa-solid fa-file-import text-lg"></i><span class="text-[10px] font-medium">Import</span>
+   188→      <div class="nav-indicator w-4 h-0.5 bg-accent rounded-full mt-0.5"></div>
+   189→    </button>
+   190→  </nav>
+   191→</div>
+   192→
+   193→<div id="toastContainer" class="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none"></div>
+   194→
+   195→<div id="visitModal" class="hidden fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60">
+   196→  <div class="bg-card border border-border rounded-t-2xl md:rounded-2xl w-full md:max-w-lg max-h-[90vh] overflow-y-auto slide-in">
+   197→    <div class="p-5 border-b border-border flex items-center justify-between">
+   198→      <h3 class="font-display font-bold text-lg">Record Visit</h3>
+   199→      <button onclick="closeVisitModal()" class="text-muted hover:text-fg text-xl"><i class="fa-solid fa-xmark"></i></button>
+   200→    </div>
+   201→    <div id="visitModalBody" class="p-5 space-y-4"></div>
+   202→  </div>
+   203→</div>
+   204→
+   205→<script>
+   206→/* ========== CONSTANTS ========== */
+   207→const USERS=[
+   208→  {username:'admin',password:'admin123',name:'Campaign Admin',role:'admin'},
+   209→  {username:'staff',password:'staff123',name:'Sarah Mitchell',role:'staff'},
+   210→  {username:'volunteer',password:'vol123',name:'Jake Torres',role:'volunteer'}
+   211→];
+   212→
+   213→const STATUS_CONFIG={
+   214→  not_visited:  {label:'Not Visited',   color:'#8B949E',bg:'rgba(139,148,158,.12)',border:'rgba(139,148,158,.25)',icon:'fa-circle-question'},
+   215→  visited:      {label:'Visited',        color:'#3FB950',bg:'rgba(63,185,80,.12)',  border:'rgba(63,185,80,.25)',  icon:'fa-circle-check'},
+   216→  follow_up:    {label:'Follow Up',      color:'#D29922',bg:'rgba(210,153,34,.12)', border:'rgba(210,153,34,.25)', icon:'fa-clock'},
+   217→  do_not_return:{label:'Do Not Return',  color:'#F85149',bg:'rgba(248,81,73,.12)',  border:'rgba(248,81,73,.25)',  icon:'fa-ban'}
+   218→};
+   219→
+   220→const PARTY_COLORS={R:'#F85149',D:'#58A6FF',G:'#BC8CFF',I:'#D29922'};
+   221→const PARTY_LABELS={R:'Republican',D:'Democrat',G:'General',I:'Independent'};
+   222→
+   223→const OUTCOMES=['Spoke to voter','Left literature','No answer - door hanger','No answer - knocked','Refused to talk','Not home','Wrong address','Other'];
+   224→
+   225→/* ===== COMPLETE FIELD LABELS — all 108 columns from merged_data_geocoded.csv ===== */
+   226→const FIELD_LABELS={
+   227→  RegistrationNum:'Reg. Number',
+   228→  CountyPrecinctNum:'Precinct #',
+   229→  PrecinctName:'Precinct',
+   230→  CountyCommissionDistrict:'County Commission Dist.',
+   231→  StateSenateDistrict:'State Senate Dist.',
+   232→  StateHouseDistrict:'State House Dist.',
+   233→  SchoolDistrict:'School District',
+   234→  LastName:'Last Name',
+   235→  FirstName:'First Name',
+   236→  MidInitial:'Middle Initial',
+   237→  Address:'Address',
+   238→  AptorBoxNumber:'Apt/Box',
+   239→  City:'City',
+   240→  State:'State',
+   241→  ZipCode:'Zip Code',
+   242→  Race:'Race',
+   243→  Sex:'Sex',
+   244→  PartyLastPrimary:'Party (Last Primary)',
+   245→  DOB:'Date of Birth',
+   246→  RegDate:'Registration Date',
+   247→  Mailing1:'Mailing Line 1',
+   248→  Mailing2:'Mailing Line 2',
+   249→  MailCity:'Mailing City',
+   250→  MailState:'Mailing State',
+   251→  MailZip:'Mailing Zip',
+   252→  MunicipalityCode:'Municipality Code',
+   253→  Status:'Voter Status',
+   254→  LastGenDate:'Last General Election',
+   255→  LastPrimaryDate:'Last Primary Election',
+   256→  Phone:'Phone',
+   257→  Email:'Email',
+   258→  Birth_City:'Birth City',
+   259→  Birth_State:'Birth State',
+   260→  Birth_Country:'Birth Country',
+   261→  GIS_STNum:'GIS Street Number',
+   262→  GIS_STName:'GIS Street Name',
+   263→  GIS_TypeSfx:'GIS Type Suffix',
+   264→  GIS_Unit:'GIS Unit',
+   265→  Prop_ParcelID:'Parcel ID',
+   266→  Prop_Owner1:'Property Owner 1',
+   267→  Prop_Owner2:'Property Owner 2',
+   268→  Prop_HouseNumber:'Prop. House Number',
+   269→  Prop_StreetName:'Prop. Street Name',
+   270→  Prop_StreetSuffix:'Prop. Street Suffix',
+   271→  Prop_SitusAddress:'Situs Address',
+   272→  Prop_MapSection:'Map Section',
+   273→  Prop_MapGroup:'Map Group',
+   274→  Prop_MapParcel:'Map Parcel',
+   275→  Prop_MapParcelFull:'Full Parcel Number',
+   276→  Prop_MailingAddress:'Prop. Mailing Address',
+   277→  Prop_Extra2:'Prop. Extra 2',
+   278→  Prop_City:'Prop. City',
+   279→  Prop_State:'Prop. State',
+   280→  Prop_Zip:'Prop. Zip',
+   281→  Prop_LegalDescription:'Legal Description',
+   282→  Prop_Acreage:'Acreage',
+   283→  Prop_ClassCode:'Class Code',
+   284→  Prop_LandUseType:'Land Use Type',
+   285→  Prop_PropertyUseCode:'Property Use Code',
+   286→  Prop_Extra3:'Prop. Extra 3',
+   287→  Prop_LandValue:'Land Value',
+   288→  Prop_BuildingValue:'Building Value',
+   289→  Prop_OtherValue:'Other Value',
+   290→  Prop_TotalAppraisedValue:'Total Appraised Value',
+   291→  Prop_AssessedValue:'Assessed Value',
+   292→  Prop_TaxDistrictCode:'Tax District Code',
+   293→  Prop_TaxDistrictName:'Tax District Name',
+   294→  Prop_ExemptionCode:'Exemption Code',
+   295→  Prop_ZoningDescription:'Zoning Description',
+   296→  Prop_NeighborhoodCode:'Neighborhood Code',
+   297→  Prop_PropertyType:'Property Type',
+   298→  Prop_Extra4:'Prop. Extra 4',
+   299→  Prop_Extra5:'Prop. Extra 5',
+   300→  Prop_Restriction1:'Restriction 1',
+   301→  Prop_Restriction2:'Restriction 2',
+   302→  Prop_LotNumbers:'Lot Numbers',
+   303→  Prop_LastSaleDate:'Last Sale Date',
+   304→  Prop_LastSalePrice:'Last Sale Price',
+   305→  Prop_LastDeedBook:'Last Deed Book',
+   306→  Prop_LastDeedPage:'Last Deed Page',
+   307→  Prop_Extra7:'Prop. Extra 7',
+   308→  Prop_SaleQualifier2:'Sale Qualifier 2',
+   309→  Prop_SaleDate2:'Sale Date 2',
+   310→  Prop_SalePrice2:'Sale Price 2',
+   311→  Prop_DeedBook2:'Deed Book 2',
+   312→  Prop_DeedPage2:'Deed Page 2',
+   313→  Prop_Extra8:'Prop. Extra 8',
+   314→  Prop_Extra9:'Prop. Extra 9',
+   315→  Prop_SaleDate3:'Sale Date 3',
+   316→  Prop_SalePrice3:'Sale Price 3',
+   317→  Prop_DeedBook3:'Deed Book 3',
+   318→  Prop_DeedPage3:'Deed Page 3',
+   319→  Prop_Extra10:'Prop. Extra 10',
+   320→  Prop_Extra11:'Prop. Extra 11',
+   321→  Prop_SaleDate4:'Sale Date 4',
+   322→  Prop_SalePrice4:'Sale Price 4',
+   323→  Prop_DeedBook4:'Deed Book 4',
+   324→  Prop_DeedPage4:'Deed Page 4',
+   325→  Prop_Extra12:'Prop. Extra 12',
+   326→  Prop_RR_Code:'RR Code',
+   327→  Prop_SubdivisionName:'Subdivision Name',
+   328→  Prop_SubdivisionCode:'Subdivision Code',
+   329→  Prop_RS_Code:'RS Code',
+   330→  Prop_PropertyDescription:'Property Description',
+   331→  Prop_MatchType:'Match Type',
+   332→  Latitude:'Latitude',
+   333→  Longitude:'Longitude',
+   334→  Match_Score:'Match Score'
+   335→};
+   336→
+   337→/* Fields to display prominently per voter card */
+   338→const PRIORITY_FIELDS=['LastName','FirstName','MidInitial','PartyLastPrimary','Sex','Race','DOB','Phone','Email','RegDate','Status','LastGenDate','LastPrimaryDate'];
+   339→
+   340→/* ========== STATE ========== */
+   341→let S={
+   342→  user:null,headers:[],voters:[],households:new Map(),householdDbIds:new Map(),selectedId:null,
+   343→  currentView:'dashboard',
+   344→  filters:{search:'',party:'',status:'',precinct:'',volunteer:'',district:''},
+   345→  map:null,markers:null,markerMap:new Map(),gpsPos:null
+   346→};
+   347→
+   348→/* ========== UTILITIES ========== */
+   349→const $=id=>document.getElementById(id);
+   350→const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
+   351→const fmtDate=d=>{if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch{return d}};
+   352→const fmtDateTime=dt=>{if(!dt)return'—';try{return new Date(dt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}catch{return dt}};
+   353→const fmtPhone=p=>{if(!p)return'—';const c=p.replace(/\D/g,'');if(c.length===10)return`(${c.slice(0,3)}) ${c.slice(3,6)}-${c.slice(6)}`;if(c.length===11&&c[0]==='1')return`(${c.slice(1,4)}) ${c.slice(4,7)}-${c.slice(7)}`;return p};
+   354→const fmtCurrency=v=>{if(!v)return'—';const n=parseFloat(v);if(isNaN(n))return v;return'$'+n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})};
+   355→
+   356→/* Generate a readable label for any field name, even ones not in our map */
+   357→const fieldLabel=f=>{
+   358→  if(FIELD_LABELS[f])return FIELD_LABELS[f];
+   359→  /* Strip common prefixes */
+   360→  let clean=f.replace(/^Prop_/,'Prop. ').replace(/^GIS_/,'GIS ').replace(/^Mail/,'Mail ').replace(/^Birth_/,'Birth ');
+   361→  /* Insert spaces before uppercase letters and numbers */
+   362→  clean=clean.replace(/([a-z])([A-Z0-9])/g,'$1 $2').replace(/_/g,' ');
+   363→  /* Title-case it */
+   364→  clean=clean.replace(/\b\w/g,c=>c.toUpperCase()).replace(/\s+/g,' ').trim();
+   365→  return clean;
+   366→};
+   367→
+   368→const partyColor=p=>PARTY_COLORS[p]||'#8B949E';
+   369→const partyLabel=p=>PARTY_LABELS[p]||(p||'Unknown');
+   370→const statusCfg=s=>STATUS_CONFIG[s]||STATUS_CONFIG.not_visited;
+   371→
+   372→/* Household key: normalize address fields for grouping */
+   373→const houseKey=v=>{
+   374→  const a=(v.Address||'').trim().toUpperCase().replace(/\s+/g,' ');
+   375→  const u=(v.AptorBoxNumber||'').trim().toUpperCase().replace(/\s+/g,' ');
+   376→  const z=(v.ZipCode||'').trim();
+   377→  return a+'|'+u+'|'+z;
+   378→};
+   379→const isMobile=()=>window.innerWidth<769;
+   380→
+   381→function toast(msg,type='info'){
+   382→  const c=$('toastContainer');
+   383→  const colors={info:'border-info bg-info/10 text-info',ok:'border-ok bg-ok/10 text-ok',err:'border-err bg-err/10 text-err',warn:'border-warn bg-warn/10 text-warn'};
+   384→  const icons={info:'fa-circle-info',ok:'fa-circle-check',err:'fa-circle-exclamation',warn:'fa-triangle-exclamation'};
+   385→  const el=document.createElement('div');
+   386→  el.className=`toast pointer-events-auto px-4 py-3 rounded-xl border ${colors[type]||colors.info} text-sm font-medium flex items-center gap-2 shadow-lg`;
+   387→  el.innerHTML=`<i class="fa-solid ${icons[type]||icons.info}"></i>${esc(msg)}`;
+   388→  c.appendChild(el);setTimeout(()=>el.remove(),3200);
+   389→}
+   390→
+   391→/* ========== AUTH ========== */
+   392→function initAuth(){
+   393→  fetch('/api/seed').catch(()=>{});
+   394→  const saved=localStorage.getItem('cp_session');
+   395→  if(saved){try{S.user=JSON.parse(saved);showApp()}catch{}}
+   396→  $('loginBtn').onclick=doLogin;
+   397→  $('loginPass').onkeydown=e=>{if(e.key==='Enter')doLogin()};
+   398→  $('loginUser').onkeydown=e=>{if(e.key==='Enter')$('loginPass').focus()};
+   399→}
+   400→async function doLogin(){
+   401→  const u=$('loginUser').value.trim().toLowerCase(),p=$('loginPass').value;
+   402→  try{
+   403→    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+   404→    if(!res.ok){$('loginError').textContent='Invalid username or password';$('loginError').classList.remove('hidden');return}
+   405→    const user=await res.json();
+   406→    S.user={name:user.name,role:user.role,username:user.username,id:user.id};
+   407→    localStorage.setItem('cp_session',JSON.stringify(S.user));showApp();
+   408→  }catch(e){
+   409→    $('loginError').textContent='Login failed — server error';$('loginError').classList.remove('hidden');
+   410→  }
+   411→}
+   412→function logout(){
+   413→  S.user=null;localStorage.removeItem('cp_session');
+   414→  $('appShell').classList.add('hidden');$('loginScreen').classList.remove('hidden');
+   415→  $('loginUser').value='';$('loginPass').value='';$('loginError').classList.add('hidden');
+   416→}
+   417→async function showApp(){
+   418→  $('loginScreen').classList.add('hidden');$('appShell').classList.remove('hidden');
+   419→  $('userName').textContent=S.user.name;$('userRole').textContent=S.user.role;
+   420→  $('userAvatar').textContent=S.user.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+   421→  await loadData();switchView('dashboard');
+   422→}
+   423→
+   424→/* ========== PERSISTENCE ========== */
+   425→function saveData(){
+   426→  /* No-op — API calls are made from specific action functions */
+   427→}
+   428→async function loadData(){
+   429→  try{
+   430→    const res=await fetch('/api/data');
+   431→    if(!res.ok)return;
+   432→    const data=await res.json();
+   433→    S.headers=data.headers||[];
+   434→    S.voters=(data.voters||[]).map(v=>({...v.data,householdId:v.householdId}));
+   435→    S.households=new Map();
+   436→    S.householdDbIds=new Map();
+   437→    const dbIdToKey=new Map();
+   438→    (data.households||[]).forEach(h=>{
+   439→      const hh={
+   440→        id:h.householdKey,
+   441→        address:h.address||'',
+   442→        apt:h.apt||'',
+   443→        fullAddress:h.fullAddress||'',
+   444→        city:h.city||'',
+   445→        state:h.state||'',
+   446→        zip:h.zip||'',
+   447→        lat:h.lat,
+   448→        lng:h.lng,
+   449→        precinct:h.precinct||'',
+   450→        district:h.district||'',
+   451→        senateDistrict:h.senateDistrict||'',
+   452→        commissionDistrict:h.commissionDistrict||'',
+   453→        schoolDistrict:h.schoolDistrict||'',
+   454→        subdivision:h.subdivision||'',
+   455→        zoning:h.zoning||'',
+   456→        neighborhoodCode:h.neighborhoodCode||'',
+   457→        landUse:h.landUse||'',
+   458→        propertyType:h.propertyType||'',
+   459→        matchType:h.matchType||'',
+   460→        status:h.status||'not_visited',
+   461→        assignedTo:h.assignedTo||'',
+   462→        visits:h.visits||[],
+   463→        notes:h.notes||'',
+   464→        tags:h.tags||[],
+   465→        voters:[]
+   466→      };
+   467→      S.households.set(h.householdKey,hh);
+   468→      S.householdDbIds.set(h.householdKey,h.id);
+   469→      dbIdToKey.set(h.id,h.householdKey);
+   470→    });
+   471→    /* Populate voters into households by matching voter.householdId to household DB id */
+   472→    S.voters.forEach(v=>{
+   473→      const key=dbIdToKey.get(v.householdId);
+   474→      if(key){const hh=S.households.get(key);if(hh)hh.voters.push(v)}
+   475→    });
+   476→  }catch(e){
+   477→    console.error('Failed to load data',e);
+   478→  }
+   479→}
+   480→function saveCanvass(){
+   481→  /* No-op — canvassing data is persisted via API calls from action functions */
+   482→}
+   483→
+   484→/* ========== CSV IMPORT — ROBUST VERSION ========== */
+   485→function renderImportView(){
+   486→  const v=$('importView');
+   487→  v.innerHTML=`
+   488→    <div class="max-w-2xl mx-auto fade-in">
+   489→      <h2 class="font-display text-2xl font-bold mb-1">Import Voter Data</h2>
+   490→      <p class="text-muted text-sm mb-6">Upload your <code class="text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded text-xs">merged_data_geocoded.csv</code> or any voter file. Supports comma, pipe, tab, and semicolon delimiters with up to 10,000 records.</p>
+   491→
+   492→      <!-- Delimiter & Options -->
+   493→      <div class="bg-card border border-border rounded-xl p-5 mb-4">
+   494→        <h3 class="font-display font-semibold text-sm mb-3"><i class="fa-solid fa-gear text-accent mr-2"></i>Import Options</h3>
+   495→        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+   496→          <div>
+   497→            <label class="block text-xs font-medium text-muted mb-1.5">Delimiter</label>
+   498→            <select id="importDelimiter" class="w-full text-sm">
+   499→              <option value="">Auto-detect</option>
+   500→              <option value=",">Comma ( , )</option>
+   501→              <option value="|">Pipe ( | )</option>
+   502→              <option value="\t">Tab</option>
+   503→              <option value=";">Semicolon ( ; )</option>
+   504→            </select>
+   505→          </div>
+   506→          <div>
+   507→            <label class="block text-xs font-medium text-muted mb-1.5">Skip First Rows</label>
+   508→            <input id="importSkip" type="number" min="0" max="10" value="0" class="w-full text-sm">
+   509→          </div>
+   510→          <div>
+   511→            <label class="block text-xs font-medium text-muted mb-1.5">Encoding</label>
+   512→            <select id="importEncoding" class="w-full text-sm">
+   513→              <option value="UTF-8">UTF-8</option>
+   514→              <option value="ISO-8859-1">Latin-1 / ISO-8859-1</option>
+   515→              <option value="Windows-1252">Windows-1252</option>
+   516→            </select>
+   517→          </div>
+   518→        </div>
+   519→      </div>
+   520→
+   521→      <!-- Drop Zone -->
+   522→      <div class="border-2 border-dashed border-border rounded-2xl p-8 md:p-12 text-center hover:border-accent/40 transition-colors mb-6 cursor-pointer" id="dropZone" onclick="$('csvInput').click()">
+   523→        <i class="fa-solid fa-cloud-arrow-up text-4xl text-muted mb-4 block"></i>
+   524→        <p class="text-fg font-medium mb-1">Drag & drop your CSV file here</p>
+   525→        <p class="text-muted text-sm mb-4">or click to browse</p>
+   526→        <input type="file" id="csvInput" accept=".csv,.txt,.tsv,.psv" class="hidden">
+   527→        <span class="btn btn-primary"><i class="fa-solid fa-folder-open"></i> Browse Files</span>
+   528→      </div>
+   529→
+   530→      <div id="importStatus" class="hidden mb-6"></div>
+   531→      <div id="importPreview" class="hidden mb-6"></div>
+   532→
+   533→      ${S.voters.length?`
+   534→      <div class="bg-card border border-border rounded-xl p-5 mb-6">
+   535→        <div class="flex items-center justify-between mb-3">
+   536→          <h3 class="font-display font-semibold">Current Data</h3>
+   537→          <div class="flex gap-2">
+   538→            <button onclick="exportCSV()" class="btn btn-secondary text-xs py-2 px-3"><i class="fa-solid fa-download"></i> Export</button>
+   539→            <button onclick="clearData()" class="btn btn-danger text-xs py-2 px-3"><i class="fa-solid fa-trash"></i> Clear</button>
+   540→          </div>
+   541→        </div>
+   542→        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+   543→          <div class="bg-bg/50 rounded-lg p-3"><span class="text-muted block text-xs">Voters</span><span class="font-bold text-lg">${S.voters.length.toLocaleString()}</span></div>
+   544→          <div class="bg-bg/50 rounded-lg p-3"><span class="text-muted block text-xs">Households</span><span class="font-bold text-lg">${S.households.size.toLocaleString()}</span></div>
+   545→          <div class="bg-bg/50 rounded-lg p-3"><span class="text-muted block text-xs">Columns</span><span class="font-bold text-lg">${S.headers.length}</span></div>
+   546→          <div class="bg-bg/50 rounded-lg p-3"><span class="text-muted block text-xs">With GPS</span><span class="font-bold text-lg">${[...S.households.values()].filter(h=>h.lat&&h.lng).length.toLocaleString()}</span></div>
+   547→        </div>
+   548→      </div>`:''}
+   549→
+   550→      <div class="bg-card border border-border rounded-xl p-5 mb-6">
+   551→        <h3 class="font-display font-semibold mb-3">Load Sample Data</h3>
+   552→        <p class="text-muted text-sm mb-4">Try the app with 50 sample voter records matching your CSV structure (Ooltewah, TN area).</p>
+   553→        <button onclick="loadSampleData()" class="btn btn-secondary"><i class="fa-solid fa-flask"></i> Load Sample Data</button>
+   554→      </div>
+   555→
+   556→      <div class="bg-card border border-border rounded-xl p-5">
+   557→        <h3 class="font-display font-semibold mb-3">Expected Columns in Your CSV</h3>
+   558→        <p class="text-muted text-sm mb-3">The importer auto-detects all columns. These are the key fields it looks for:</p>
+   559→        <div class="flex flex-wrap gap-1.5">
+   560→          ${['Address','AptorBoxNumber','City','State','ZipCode','LastName','FirstName','PartyLastPrimary','Latitude','Longitude','PrecinctName','Phone','Email','DOB','Race','Sex','RegDate','Status','Prop_SubdivisionName','Prop_ZoningDescription','Prop_TotalAppraisedValue','Prop_AssessedValue','Prop_LandUseType','Prop_NeighborhoodCode','StateHouseDistrict','StateSenateDistrict','CountyCommissionDistrict'].map(f=>`<span class="inline-block px-2 py-1 rounded-md bg-accent/8 text-accent/80 text-xs font-mono border border-accent/15">${f}</span>`).join('')}
+   561→          <span class="inline-block px-2 py-1 rounded-md bg-border/50 text-muted text-xs">+ ${108-28} more columns auto-detected</span>
+   562→        </div>
+   563→      </div>
+   564→    </div>`;
+   565→
+   566→  const dz=$('dropZone'),ci=$('csvInput');
+   567→  dz.ondragover=e=>{e.preventDefault();dz.classList.add('border-accent')};
+   568→  dz.ondragleave=()=>dz.classList.remove('border-accent');
+   569→  dz.ondrop=e=>{e.preventDefault();dz.classList.remove('border-accent');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0])};
+   570→  ci.onchange=()=>{if(ci.files[0])processFile(ci.files[0])};
+   571→}
+   572→
+   573→/* Clean a header name: remove BOM, trim whitespace, collapse internal spaces */
+   574→function cleanHeader(h){
+   575→  return h.replace(/^\uFEFF/,'').replace(/^\u200B/,'').trim().replace(/\s+/g,' ');
+   576→}
+   577→
+   578→function processFile(file){
+   579→  const st=$('importStatus');st.classList.remove('hidden');
+   580→  st.innerHTML=`<div class="flex items-center gap-3 p-4 bg-accent/10 border border-accent/20 rounded-xl"><i class="fa-solid fa-spinner fa-spin text-accent text-lg"></i><div><p class="font-medium text-sm">Reading ${esc(file.name)} (${(file.size/1024/1024).toFixed(2)} MB)...</p><p class="text-muted text-xs">Detecting format and parsing</p></div></div>`;
+   581→  $('importPreview').classList.add('hidden');
+   582→
+   583→  const delimiterVal=$('importDelimiter').value;
+   584→  const skipRows=parseInt($('importSkip').value)||0;
+   585→  const encoding=$('importEncoding').value;
+   586→
+   587→  /* Build PapaParse config */
+   588→  const config={
+   589→    header:true,
+   590→    skipEmptyLines:true,
+   591→    encoding:encoding,
+   592→    skipFirstNLines:skipRows,
+   593→    transformHeader:h=>cleanHeader(h),
+   594→    complete:function(results){
+   595→      handleParseComplete(results,file);
+   596→    },
+   597→    error:function(err){
+   598→      st.innerHTML=`<div class="p-4 bg-err/10 border border-err/20 rounded-xl text-err text-sm"><i class="fa-solid fa-circle-exclamation mr-2"></i>Read error: ${esc(err.message)}</div>`;
+   599→    }
+   600→  };
+   601→
+   602→  /* Set delimiter: empty string = auto-detect, otherwise use specified */
+   603→  if(delimiterVal==='')config.delimiter='';
+   604→  else if(delimiterVal==='\\t')config.delimiter='\t';
+   605→  else config.delimiter=delimiterVal;
+   606→
+   607→  Papa.parse(file,config);
+   608→}
+   609→
+   610→function handleParseComplete(results,file){
+   611→  const st=$('importStatus');
+   612→  const pv=$('importPreview');
+   613→
+   614→  if(results.errors.length){
+   615→    const critical=results.errors.filter(e=>e.type==='FieldMismatch'||e.type==='Quotes');
+   616→    const warnings=results.errors.filter(e=>e.type!=='FieldMismatch'&&e.type!=='Quotes');
+   617→    if(warnings.length>5){
+   618→      st.innerHTML=`<div class="p-4 bg-warn/10 border border-warn/20 rounded-xl text-warn text-sm"><i class="fa-solid fa-triangle-exclamation mr-2"></i>${warnings.length} parse warnings. Attempting to continue...<br><span class="text-xs opacity-70">${esc(warnings[0].message)} (row ${warnings[0].row})</span></div>`;
+   619→    }
+   620→  }
+   621→
+   622→  if(!results.data||!results.data.length){
+   623→    st.innerHTML=`<div class="p-4 bg-err/10 border border-err/20 rounded-xl text-err text-sm"><i class="fa-solid fa-circle-exclamation mr-2"></i>No data rows found. Check your delimiter setting — if your file uses <strong>pipe (|)</strong> characters, select "Pipe" from the delimiter dropdown above and re-import.</div>`;
+   624→    return;
+   625→  }
+   626→
+   627→  const headers=results.meta.fields||[];
+   628→  if(!headers.length){
+   629→    st.innerHTML=`<div class="p-4 bg-err/10 border border-err/20 rounded-xl text-err text-sm"><i class="fa-solid fa-circle-exclamation mr-2"></i>No column headers detected. Ensure the first data row contains header names, or increase "Skip First Rows" if there's a title line.</div>`;
+   630→    return;
+   631→  }
+   632→
+   633→  /* Show preview of detected headers */
+   634→  const keyFields=['Address','AptorBoxNumber','City','State','ZipCode','LastName','FirstName','PartyLastPrimary','Latitude','Longitude','PrecinctName'];
+   635→  const found=keyFields.filter(f=>headers.includes(f));
+   636→  const missing=keyFields.filter(f=>!headers.includes(f));
+   637→
+   638→  pv.classList.remove('hidden');
+   639→  pv.innerHTML=`
+   640→    <div class="detect-card bg-card rounded-xl p-5">
+   641→      <div class="flex items-center justify-between mb-3">
+   642→        <h3 class="font-display font-semibold text-sm"><i class="fa-solid fa-table-columns text-accent mr-2"></i>Detected ${headers.length} Columns</h3>
+   643→        <span class="text-xs text-muted">Delimiter: ${esc(results.meta.delimiter||'auto')}</span>
+   644→      </div>
+   645→      <div class="flex flex-wrap gap-1 mb-3 max-h-32 overflow-y-auto">
+   646→        ${headers.map(h=>{
+   647→          const isKey=keyFields.includes(h);
+   648→          return`<span class="inline-block px-2 py-0.5 rounded text-[11px] font-mono ${isKey?'bg-accent/15 text-accent border border-accent/25':'bg-bg/80 text-muted border border-border/50'}">${esc(h)}</span>`;
+   649→        }).join('')}
+   650→      </div>
+   651→      ${missing.length?`<div class="p-3 bg-warn/8 border border-warn/20 rounded-lg mb-3"><p class="text-xs text-warn font-medium mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Missing key columns:</p><p class="text-xs text-warn/70">${missing.map(f=>`<code>${f}</code>`).join(', ')}</p><p class="text-xs text-muted mt-1">The app will still work but some features may be limited.</p></div>`:''}
+   652→      <div class="flex gap-2">
+   653→        <button onclick="confirmImport()" class="btn btn-primary flex-1 justify-center"><i class="fa-solid fa-check"></i> Import ${results.data.length.toLocaleString()} Records</button>
+   654→        <button onclick="$('importPreview').classList.add('hidden')" class="btn btn-secondary">Cancel</button>
+   655→      </div>
+   656→    </div>`;
+   657→
+   658→  /* Store parsed results for confirmation */
+   659→  window._pendingImport={headers,data:results.data};
+   660→
+   661→  st.innerHTML=`<div class="flex items-center gap-3 p-4 bg-ok/10 border border-ok/20 rounded-xl text-ok text-sm"><i class="fa-solid fa-circle-check text-lg"></i><div><p class="font-medium">Parsed ${results.data.length.toLocaleString()} records with ${headers.length} columns</p><p class="text-xs opacity-70">Review the detected columns below, then confirm import</p></div></div>`;
+   662→}
+   663→
+   664→function confirmImport(){
+   665→  if(!window._pendingImport)return;
+   666→  const{headers,data}=window._pendingImport;
+   667→  window._pendingImport=null;
+   668→  $('importPreview').classList.add('hidden');
+   669→
+   670→  S.headers=headers;
+   671→  S.voters=data;
+   672→  groupHouseholds();
+   673→
+   674→  const withGps=[...S.households.values()].filter(h=>h.lat&&h.lng).length;
+   675→  const st=$('importStatus');
+   676→  st.innerHTML=`<div class="p-4 bg-ok/10 border border-ok/20 rounded-xl text-ok text-sm"><i class="fa-solid fa-circle-check mr-2"></i>Imported <strong>${S.voters.length.toLocaleString()}</strong> voters across <strong>${S.households.size.toLocaleString()}</strong> households. ${withGps} with GPS coordinates.</div>`;
+   677→  toast(`Imported ${S.voters.length} voters`,'ok');
+   678→  renderImportView();
+   679→
+   680→  /* Sync to API in background, then reload to get DB IDs */
+   681→  fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({headers:S.headers,voters:S.voters})})
+   682→    .then(r=>r.json()).then(result=>{
+   683→      if(result.ok)loadData();
+   684→    }).catch(e=>toast('Failed to sync to server: '+e.message,'err'));
+   685→}
+   686→
+   687→function groupHouseholds(){
+   688→  S.households.clear();
+   689→  S.householdDbIds.clear();
+   690→  S.voters.forEach(v=>{
+   691→    const key=houseKey(v);
+   692→    if(!S.households.has(key)){
+   693→      const lat=parseFloat(v.Latitude),lng=parseFloat(v.Longitude);
+   694→      S.households.set(key,{
+   695→        id:key,
+   696→        address:(v.Address||'').trim(),
+   697→        apt:(v.AptorBoxNumber||'').trim(),
+   698→        fullAddress:[v.Address,v.AptorBoxNumber,v.City,v.State,v.ZipCode].filter(x=>x&&x.trim()).join(' ').trim(),
+   699→        city:(v.City||'').trim(),state:(v.State||'').trim(),zip:(v.ZipCode||'').trim(),
+   700→        lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,
+   701→        precinct:(v.PrecinctName||'').trim(),
+   702→        district:(v.StateHouseDistrict||'').trim(),
+   703→        senateDistrict:(v.StateSenateDistrict||'').trim(),
+   704→        commissionDistrict:(v.CountyCommissionDistrict||'').trim(),
+   705→        schoolDistrict:(v.SchoolDistrict||'').trim(),
+   706→        subdivision:(v.Prop_SubdivisionName||'').trim(),
+   707→        zoning:(v.Prop_ZoningDescription||'').trim(),
+   708→        neighborhoodCode:(v.Prop_NeighborhoodCode||'').trim(),
+   709→        landUse:(v.Prop_LandUseType||'').trim(),
+   710→        propertyType:(v.Prop_PropertyType||'').trim(),
+   711→        matchType:(v.Prop_MatchType||'').trim(),
+   712→        status:'not_visited',assignedTo:'',visits:[],notes:'',tags:[],voters:[]
+   713→      });
+   714→    }
+   715→    S.households.get(key).voters.push(v);
+   716→  });
+   717→}
+   718→
+   719→async function clearData(){
+   720→  if(!confirm('Clear all imported data? This cannot be undone.'))return;
+   721→  try{await fetch('/api/data',{method:'DELETE'})}catch(e){toast('Failed to clear server data: '+e.message,'err')}
+   722→  S.headers=[];S.voters=[];S.households.clear();S.householdDbIds.clear();S.selectedId=null;
+   723→  localStorage.removeItem('cp_data');localStorage.removeItem('cp_canvass');
+   724→  toast('Data cleared','ok');renderImportView();closeDetails();
+   725→}
+   726→
+   727→function exportCSV(){
+   728→  if(!S.voters.length)return toast('No data to export','warn');
+   729→  const rows=[];
+   730→  S.households.forEach(h=>{
+   731→    h.voters.forEach(v=>{
+   732→      const row={...v,_CanvassStatus:h.status,_AssignedTo:h.assignedTo,_Notes:h.notes,_LastVisit:h.visits.length?h.visits[h.visits.length-1].date:'','_Tags':h.tags.join(';')};
+   733→      rows.push(row);
+   734→    });
+   735→  });
+   736→  const csv=Papa.unparse(rows);
+   737→  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+   738→  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+   739→  a.download=`canvass_export_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+   740→  toast('CSV exported','ok');
+   741→}
+   742→
+   743→/* ========== SAMPLE DATA — matches merged_data_geocoded.csv structure ========== */
+   744→async function loadSampleData(){
+   745→  const streets=[
+   746→    {addr:'4100 APISON PIKE',city:'APISON',zip:'37302',lat:35.038,lng:-85.035,precinct:'APISON B',sub:'Apison Heights',zoning:'A',landUse:'1',propType:'RS',nbCode:'37381',matchType:'Exact'},
+   747→    {addr:'5320 OOLTEWAH RINGGOLD RD',city:'OOLTEWAH',zip:'37363',lat:35.063,lng:-85.068,precinct:'COLLEGEDALE A',sub:'Collegedale Commons',zoning:'',landUse:'117',propType:'MF',nbCode:'',matchType:'SingleParcelOnStreet'},
+   748→    {addr:'8919 LU LN',city:'OOLTEWAH',zip:'37363',lat:35.068,lng:-85.031,precinct:'OOLTEWAH',sub:'',zoning:'',landUse:'',propType:'',nbCode:'',matchType:'Unmatched'},
+   749→    {addr:'9500 LEYLAND DR',city:'OOLTEWAH',zip:'37363',lat:35.056,lng:-85.078,precinct:'COLLEGEDALE B',sub:'GREENBRIAR COVE PHAS',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   750→    {addr:'10110 SCENIC VIEW DR',city:'OOLTEWAH',zip:'37363',lat:35.026,lng:-85.059,precinct:'APISON B',sub:'PINE REST',zoning:'R1',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   751→    {addr:'5600 LANDRUM CT',city:'OOLTEWAH',zip:'37363',lat:35.064,lng:-85.043,precinct:'APISON B',sub:'EDGEMONT UNIT 2',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   752→    {addr:'4462 WELLESLEY DR',city:'OOLTEWAH',zip:'37363',lat:35.054,lng:-85.080,precinct:'COLLEGEDALE B',sub:'WELLESLEY SUB UNIT 3',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   753→    {addr:'8728 DON RAY WAY',city:'OOLTEWAH',zip:'37363',lat:35.064,lng:-85.031,precinct:'OOLTEWAH',sub:'',zoning:'',landUse:'',propType:'',nbCode:'',matchType:'Unmatched'},
+   754→    {addr:'9677 HOSTA LN',city:'OOLTEWAH',zip:'37363',lat:35.068,lng:-85.045,precinct:'OOLTEWAH',sub:'HOMEWOOD PHASE V',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   755→    {addr:'4917 PINE CIR',city:'OOLTEWAH',zip:'37363',lat:35.062,lng:-85.076,precinct:'COLLEGEDALE B',sub:'',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   756→    {addr:'4072 BARNSLEY LOOP',city:'OOLTEWAH',zip:'37363',lat:35.045,lng:-85.071,precinct:'APISON B',sub:'',zoning:'A',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   757→    {addr:'5579 TUCKER RD',city:'OOLTEWAH',zip:'37363',lat:35.064,lng:-85.047,precinct:'OOLTEWAH',sub:'',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   758→    {addr:'4420 KATIE KIM LN',city:'OOLTEWAH',zip:'37363',lat:35.028,lng:-85.042,precinct:'APISON B',sub:'FOX TRAILS UNIT 3',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   759→    {addr:'5405 MISTY VALLEY DR',city:'OOLTEWAH',zip:'37363',lat:35.067,lng:-85.035,precinct:'OOLTEWAH',sub:'MISTY VALLEY SUB',zoning:'',landUse:'Residential',propType:'RS',nbCode:'',matchType:'Exact'},
+   760→    {addr:'5811 WITS END LN',city:'MCDONALD',zip:'37353',lat:35.053,lng:-85.020,precinct:'APISON B',sub:'',zoning:'A',landUse:'1',propType:'RS',nbCode:'',matchType:'Exact'}
+   761→  ];
+   762→  const parties=['R','D','G','R','D','G','R','R','D','G'];
+   763→  const firstNames=['James','Mary','Robert','Patricia','John','Jennifer','Michael','Linda','David','Elizabeth','William','Barbara','Richard','Susan','Joseph','Jessica','Thomas','Sarah','Christopher','Karen','Charles','Lisa','Daniel','Nancy','Matthew','Betty','Anthony','Margaret','Mark','Sandra'];
+   764→  const lastNames=['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Rodriguez','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Jackson','Martin','Lee','Perez','Thompson','White','Harris','Sanchez','Clark','Ramirez','Lewis','Robinson'];
+   765→  const races=['W','B','NS','W','NS','W','B','NS','W','W'];
+   766→  const sexes=['M','F'];
+   767→
+   768→  /* Full header set matching merged_data_geocoded.csv */
+   769→  S.headers=['RegistrationNum','CountyPrecinctNum','PrecinctName','CountyCommissionDistrict','StateSenateDistrict','StateHouseDistrict','SchoolDistrict','LastName','FirstName','MidInitial','Address','AptorBoxNumber','City','State','ZipCode','Race','Sex','PartyLastPrimary','DOB','RegDate','Mailing1','Mailing2','MailCity','MailState','MailZip','MunicipalityCode','Status','LastGenDate','LastPrimaryDate','Phone','Email','Birth_City','Birth_State','Birth_Country','GIS_STNum','GIS_STName','GIS_TypeSfx','GIS_Unit','Prop_ParcelID','Prop_Owner1','Prop_Owner2','Prop_HouseNumber','Prop_StreetName','Prop_StreetSuffix','Prop_SitusAddress','Prop_MapSection','Prop_MapGroup','Prop_MapParcel','Prop_MapParcelFull','Prop_MailingAddress','Prop_Extra2','Prop_City','Prop_State','Prop_Zip','Prop_LegalDescription','Prop_Acreage','Prop_ClassCode','Prop_LandUseType','Prop_PropertyUseCode','Prop_Extra3','Prop_LandValue','Prop_BuildingValue','Prop_OtherValue','Prop_TotalAppraisedValue','Prop_AssessedValue','Prop_TaxDistrictCode','Prop_TaxDistrictName','Prop_ExemptionCode','Prop_ZoningDescription','Prop_NeighborhoodCode','Prop_PropertyType','Prop_Extra4','Prop_Extra5','Prop_Restriction1','Prop_Restriction2','Prop_LotNumbers','Prop_LastSaleDate','Prop_LastSalePrice','Prop_LastDeedBook','Prop_LastDeedPage','Prop_Extra7','Prop_SaleQualifier2','Prop_SaleDate2','Prop_SalePrice2','Prop_DeedBook2','Prop_DeedPage2','Prop_Extra8','Prop_Extra9','Prop_SaleDate3','Prop_SalePrice3','Prop_DeedBook3','Prop_DeedPage3','Prop_Extra10','Prop_Extra11','Prop_SaleDate4','Prop_SalePrice4','Prop_DeedBook4','Prop_DeedPage4','Prop_Extra12','Prop_RR_Code','Prop_SubdivisionName','Prop_SubdivisionCode','Prop_RS_Code','Prop_PropertyDescription','Prop_MatchType','Latitude','Longitude','Match_Score'];
+   770→
+   771→  S.voters=[];
+   772→  let regNum=600000;
+   773→  streets.forEach((st,si)=>{
+   774→    const numVoters=1+Math.floor(Math.random()*3);
+   775→    const stParts=st.addr.split(' ');const stNum=stParts[0];const stName=stParts.slice(1).join(' ');
+   776→    for(let vi=0;vi<numVoters;vi++){
+   777→      const fn=firstNames[Math.floor(Math.random()*firstNames.length)];
+   778→      const ln=lastNames[Math.floor(Math.random()*lastNames.length)];
+   779→      const party=parties[Math.floor(Math.random()*parties.length)];
+   780→      const race=races[Math.floor(Math.random()*races.length)];
+   781→      const sex=sexes[Math.floor(Math.random()*sexes.length)];
+   782→      const yr=1940+Math.floor(Math.random()*60);
+   783→      const mo=String(1+Math.floor(Math.random()*12)).padStart(2,'0');
+   784→      const dy=String(1+Math.floor(Math.random()*28)).padStart(2,'0');
+   785→      const phone=`${423}${String(Math.floor(Math.random()*9000000)+1000000)}`;
+   786→      const regYr=2010+Math.floor(Math.random()*15);
+   787→      const landVal=(50000+Math.floor(Math.random()*80000)).toFixed(0);
+   788→      const bldgVal=(100000+Math.floor(Math.random()*400000)).toFixed(0);
+   789→      const totalVal=(parseInt(landVal)+parseInt(bldgVal)).toFixed(0);
+   790→      const assessedVal=Math.round(parseInt(totalVal)*0.25).toFixed(0);
+   791→      const salePrice=(100000+Math.floor(Math.random()*400000)).toFixed(0);
+   792→      const saleMo=String(1+Math.floor(Math.random()*12)).padStart(2,'0');
+   793→      const saleDy=String(1+Math.floor(Math.random()*28)).padStart(2,'0');
+   794→      const saleYr=2005+Math.floor(Math.random()*19);
+   795→
+   796→      S.voters.push({
+   797→        RegistrationNum:String(regNum++),
+   798→        CountyPrecinctNum:String(45+Math.floor(Math.random()*70)),
+   799→        PrecinctName:st.precinct,
+   800→        CountyCommissionDistrict:'10',
+   801→        StateSenateDistrict:Math.random()>.5?'10':'11',
+   802→        StateHouseDistrict:Math.random()>.5?'29':'30',
+   803→        SchoolDistrict:'10',
+   804→        LastName:ln,FirstName:fn,MidInitial:Math.random()>.6?'A':'',
+   805→        Address:st.addr,AptorBoxNumber:'',City:st.city,State:'TN',ZipCode:st.zip,
+   806→        Race:race,Sex:sex,PartyLastPrimary:party,
+   807→        DOB:`${mo}/${dy}/${yr}`,
+   808→        RegDate:`${1+Math.floor(Math.random()*12)}/${1+Math.floor(Math.random()*28)}/${regYr}`,
+   809→        Mailing1:'',Mailing2:'',MailCity:'',MailState:'',MailZip:'',
+   810→        MunicipalityCode:st.city.toUpperCase().replace(/\s/g,''),
+   811→        Status:'A',
+   812→        LastGenDate:Math.random()>.3?`11/${String(1+Math.floor(Math.random()*28)).padStart(2,'0')}/2024`:'',
+   813→        LastPrimaryDate:Math.random()>.5?`08/${String(1+Math.floor(Math.random()*28)).padStart(2,'0')}/2024`:'',
+   814→        Phone:phone,Email:Math.random()>.5?`${fn.toLowerCase()}.${ln.toLowerCase()}@email.com`:'',
+   815→        Birth_City:'',Birth_State:'',Birth_Country:'',
+   816→        GIS_STNum:stNum,GIS_STName:stName.replace(/ (TRL|DR|RD|LN|CT|CIR|WAY)$/,''),GIS_TypeSfx:st.addr.match(/ (TRL|DR|RD|LN|CT|CIR|WAY)$/)?.[1]||'',GIS_Unit:'',
+   817→        Prop_ParcelID:`033${Math.floor(Math.random()*9)}${Math.floor(Math.random()*9)}${String.fromCharCode(65+Math.floor(Math.random()*26))} ${String.fromCharCode(65+Math.floor(Math.random()*26))} ${String(Math.floor(Math.random()*100)).padStart(5,'0')}`,
+   818→        Prop_Owner1:`${ln} ${fn}`,Prop_Owner2:'',
+   819→        Prop_HouseNumber:stNum,Prop_StreetName:stName.replace(/ (TRL|DR|RD|LN|CT|CIR|WAY)$/,''),Prop_StreetSuffix:st.addr.match(/ (TRL|DR|RD|LN|CT|CIR|WAY)$/)?.[1]||'',
+   820→        Prop_SitusAddress:st.addr,
+   821→        Prop_MapSection:String(140+Math.floor(Math.random()*20)),
+   822→        Prop_MapGroup:String.fromCharCode(65+Math.floor(Math.random()*26)),
+   823→        Prop_MapParcel:String(Math.floor(Math.random()*100)),
+   824→        Prop_MapParcelFull:`${140+Math.floor(Math.random()*20)}${String.fromCharCode(65+Math.floor(Math.random()*26))} ${Math.floor(Math.random()*100)}`,
+   825→        Prop_MailingAddress:st.addr,Prop_Extra2:'',
+   826→        Prop_City:st.city,Prop_State:'TN',Prop_Zip:st.zip,
+   827→        Prop_LegalDescription:`LOT ${Math.floor(Math.random()*200)} ${st.sub||'SUB'} PB${Math.floor(Math.random()*100)} PG${Math.floor(Math.random()*300)}`,
+   828→        Prop_Acreage:'1.00000',Prop_ClassCode:'111.00',
+   829→        Prop_LandUseType:st.landUse||'Residential',Prop_PropertyUseCode:'22',Prop_Extra3:'',
+   830→        Prop_LandValue:landVal,Prop_BuildingValue:bldgVal,Prop_OtherValue:'0',
+   831→        Prop_TotalAppraisedValue:totalVal,Prop_AssessedValue:assessedVal,
+   832→        Prop_TaxDistrictCode:'2C',Prop_TaxDistrictName:'Collegedale',
+   833→        Prop_ExemptionCode:'',Prop_ZoningDescription:st.zoning,
+   834→        Prop_NeighborhoodCode:st.nbCode,Prop_PropertyType:st.propType||'',
+   835→        Prop_Extra4:'',Prop_Extra5:'',Prop_Restriction1:'',Prop_Restriction2:'',
+   836→        Prop_LotNumbers:`${Math.floor(Math.random()*100)}`,
+   837→        Prop_LastSaleDate:`${saleMo}-${saleDy}-${saleYr}`,Prop_LastSalePrice:salePrice,
+   838→        Prop_LastDeedBook:String(Math.floor(Math.random()*15000)),
+   839→        Prop_LastDeedPage:String(Math.floor(Math.random()*1000)),
+   840→        Prop_Extra7:'',Prop_SaleQualifier2:'',
+   841→        Prop_SaleDate2:`${String(1+Math.floor(Math.random()*12)).padStart(2,'0')}-${String(1+Math.floor(Math.random()*28)).padStart(2,'0')}-${2000+Math.floor(Math.random()*20)}`,
+   842→        Prop_SalePrice2:String(Math.floor(Math.random()*300000)),
+   843→        Prop_DeedBook2:String(Math.floor(Math.random()*15000)),
+   844→        Prop_DeedPage2:String(Math.floor(Math.random()*1000)),
+   845→        Prop_Extra8:'',Prop_Extra9:'',
+   846→        Prop_SaleDate3:'',Prop_SalePrice3:'0',Prop_DeedBook3:'',Prop_DeedPage3:'',
+   847→        Prop_Extra10:'',Prop_Extra11:'',
+   848→        Prop_SaleDate4:'',Prop_SalePrice4:'0',Prop_DeedBook4:'',Prop_DeedPage4:'',
+   849→        Prop_Extra12:'',Prop_RR_Code:Math.random()>.5?'RR':'',
+   850→        Prop_SubdivisionName:st.sub,Prop_SubdivisionCode:String(Math.floor(Math.random()*999999)),
+   851→        Prop_RS_Code:'RS',Prop_PropertyDescription:'RESIDENTIAL',
+   852→        Prop_MatchType:st.matchType,
+   853→        Latitude:String(st.lat),Longitude:String(st.lng),Match_Score:'100.0'
+   854→      });
+   855→    }
+   856→  });
+   857→  groupHouseholds();
+   858→  toast(`Loaded ${S.voters.length} sample voters with ${S.headers.length} columns`,'ok');renderImportView();
+   859→
+   860→  /* Sync to API in background, then reload to get DB IDs */
+   861→  try{
+   862→    const res=await fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({headers:S.headers,voters:S.voters})});
+   863→    const result=await res.json();
+   864→    if(result.ok)loadData();
+   865→  }catch(e){toast('Failed to sync to server: '+e.message,'err')}
+   866→}
+   867→
+   868→/* ========== VIEW SWITCHING ========== */
+   869→function switchView(view){
+   870→  S.currentView=view;
+   871→  ['dashboard','search','map','import'].forEach(v=>{$(v+'View').classList.toggle('hidden',v!==view)});
+   872→  document.querySelectorAll('[data-nav]').forEach(btn=>{
+   873→    const isActive=btn.dataset.nav===view;
+   874→    btn.classList.toggle('active',isActive);btn.classList.toggle('text-fg',isActive);
+   875→  });
+   876→  if(view==='dashboard')renderDashboard();
+   877→  if(view==='search')renderSearchView();
+   878→  if(view==='map')initMap();
+   879→  if(view==='import')renderImportView();
+   880→  if(view!=='map'&&S.map)setTimeout(()=>S.map.invalidateSize(),100);
+   881→}
+   882→
+   883→/* ========== DASHBOARD ========== */
+   884→function renderDashboard(){
+   885→  const hh=[...S.households.values()];
+   886→  const total=hh.length,voters=S.voters.length;
+   887→  const visited=hh.filter(h=>h.status==='visited').length;
+   888→  const remaining=hh.filter(h=>h.status==='not_visited').length;
+   889→  const followUp=hh.filter(h=>h.status==='follow_up').length;
+   890→  const dnr=hh.filter(h=>h.status==='do_not_return').length;
+   891→  const today=new Date().toISOString().slice(0,10);
+   892→  const visitsToday=hh.reduce((c,h)=>c+h.visits.filter(v=>v.date===today).length,0);
+   893→  const teamStats={};
+   894→  hh.forEach(h=>h.visits.forEach(v=>{if(!teamStats[v.volunteer])teamStats[v.volunteer]={count:0};teamStats[v.volunteer].count++}));
+   895→  const precinctStats={};
+   896→  hh.forEach(h=>{const p=h.precinct||'Unknown';if(!precinctStats[p])precinctStats[p]={total:0,visited:0};precinctStats[p].total++;if(h.status==='visited')precinctStats[p].visited++});
+   897→  const pctDone=total?Math.round(visited/total*100):0;
+   898→
+   899→  $('dashboardView').innerHTML=`
+   900→    <div class="max-w-6xl mx-auto fade-in">
+   901→      <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
+   902→        <div>
+   903→          <h2 class="font-display text-2xl font-bold">Campaign Dashboard</h2>
+   904→          <p class="text-muted text-sm">${total?`Tracking ${total.toLocaleString()} households, ${voters.toLocaleString()} voters`:'No data loaded — import a CSV to begin'}</p>
+   905→        </div>
+   906→        ${total?`<button onclick="switchView('import')" class="btn btn-secondary text-sm"><i class="fa-solid fa-file-import"></i> Import More</button>`:`<button onclick="switchView('import')" class="btn btn-primary text-sm"><i class="fa-solid fa-file-import"></i> Import CSV</button>`}
+   907→      </div>
+   908→      ${total?`
+   909→      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+   910→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Households</p><p class="font-display text-2xl font-bold">${total.toLocaleString()}</p></div>
+   911→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Voters</p><p class="font-display text-2xl font-bold">${voters.toLocaleString()}</p></div>
+   912→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Visited</p><p class="font-display text-2xl font-bold text-ok">${visited.toLocaleString()}</p></div>
+   913→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Remaining</p><p class="font-display text-2xl font-bold text-muted">${remaining.toLocaleString()}</p></div>
+   914→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Follow-ups</p><p class="font-display text-2xl font-bold text-warn">${followUp.toLocaleString()}</p></div>
+   915→        <div class="stat-card bg-card border border-border rounded-xl p-4"><p class="text-muted text-xs font-medium mb-1">Do Not Return</p><p class="font-display text-2xl font-bold text-err">${dnr.toLocaleString()}</p></div>
+   916→      </div>
+   917→      <div class="bg-card border border-border rounded-xl p-5 mb-6">
+   918→        <div class="flex items-center justify-between mb-2"><span class="text-sm font-medium">Overall Progress</span><span class="text-sm font-bold text-accent">${pctDone}%</span></div>
+   919→        <div class="w-full h-3 bg-bg rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-700" style="width:${pctDone}%;background:linear-gradient(90deg,#D4943A,#F0C878)"></div></div>
+   920→        <div class="flex gap-4 mt-3 text-xs text-muted">
+   921→          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-ok inline-block"></span>Visited ${visited}</span>
+   922→          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-warn inline-block"></span>Follow-up ${followUp}</span>
+   923→          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-err inline-block"></span>DNR ${dnr}</span>
+   924→          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:#8B949E"></span>Not visited ${remaining}</span>
+   925→        </div>
+   926→      </div>
+   927→      <div class="grid md:grid-cols-2 gap-6 mb-6">
+   928→        <div class="bg-card border border-border rounded-xl p-5">
+   929→          <h3 class="font-display font-semibold mb-4 flex items-center gap-2"><i class="fa-solid fa-calendar-day text-accent"></i> Today's Activity</h3>
+   930→          <div class="flex items-center gap-4 mb-4">
+   931→            <div class="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center"><span class="font-display text-2xl font-bold text-accent">${visitsToday}</span></div>
+   932→            <div><p class="text-sm font-medium">Visits completed today</p><p class="text-xs text-muted">${visitsToday?'Keep up the great work!':'No visits recorded yet today'}</p></div>
+   933→          </div>
+   934→        </div>
+   935→        <div class="bg-card border border-border rounded-xl p-5">
+   936→          <h3 class="font-display font-semibold mb-4 flex items-center gap-2"><i class="fa-solid fa-users text-accent"></i> Team Visits</h3>
+   937→          ${Object.keys(teamStats).length?`<div class="space-y-2.5 max-h-48 overflow-y-auto">${Object.entries(teamStats).sort((a,b)=>b[1].count-a[1].count).map(([name,s])=>`<div class="flex items-center gap-3"><div class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-accent text-xs font-bold flex-shrink-0">${esc(name.split(' ').map(w=>w[0]).join('').slice(0,2))}</div><div class="flex-1 min-w-0"><div class="flex justify-between text-sm"><span class="truncate">${esc(name)}</span><span class="font-bold text-accent">${s.count}</span></div><div class="w-full h-1.5 bg-bg rounded-full mt-1"><div class="h-full bg-accent/50 rounded-full" style="width:${Math.min(100,s.count/Math.max(1,...Object.values(teamStats).map(x=>x.count))*100)}%"></div></div></div></div>`).join('')}</div>`:`<p class="text-muted text-sm">No visit data yet.</p>`}
+   938→        </div>
+   939→      </div>
+   940→      <div class="bg-card border border-border rounded-xl p-5">
+   941→        <h3 class="font-display font-semibold mb-4 flex items-center gap-2"><i class="fa-solid fa-map text-accent"></i> Progress by Precinct</h3>
+   942→        <div class="space-y-3 max-h-64 overflow-y-auto">
+   943→          ${Object.entries(precinctStats).sort((a,b)=>b[1].total-a[1].total).map(([p,s])=>{const pct=s.total?Math.round(s.visited/s.total*100):0;return`<div class="field-row rounded-lg p-2.5"><div class="flex justify-between text-sm mb-1"><span class="font-medium">${esc(p)}</span><span class="text-muted">${s.visited}/${s.total} <span class="text-accent font-bold">(${pct}%)</span></span></div><div class="w-full h-2 bg-bg rounded-full"><div class="h-full rounded-full" style="width:${pct}%;background:linear-gradient(90deg,#D4943A,#F0C878)"></div></div></div>`}).join('')}
+   944→        </div>
+   945→      </div>`:`
+   946→      <div class="text-center py-20">
+   947→        <div class="w-20 h-20 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6"><i class="fa-solid fa-file-csv text-accent text-3xl"></i></div>
+   948→        <h3 class="font-display text-xl font-bold mb-2">No Voter Data Loaded</h3>
+   949→        <p class="text-muted text-sm mb-6 max-w-md mx-auto">Import your <code class="text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded text-xs">merged_data_geocoded.csv</code> file to get started.</p>
+   950→        <button onclick="switchView('import')" class="btn btn-primary text-base py-3 px-8"><i class="fa-solid fa-file-import"></i> Import Voter Data</button>
+   951→        <p class="text-muted text-xs mt-4">or <button onclick="loadSampleData();switchView('dashboard')" class="text-accent hover:underline">load sample data</button> to try the app</p>
+   952→      </div>`}
+   953→    </div>`;
+   954→}
+   955→
+   956→/* ========== SEARCH VIEW ========== */
+   957→function renderSearchView(){
+   958→  const v=$('searchView');
+   959→  v.innerHTML=`
+   960→    <div class="flex flex-col h-full">
+   961→      <div class="p-3 md:p-4 border-b border-border flex-shrink-0 bg-card">
+   962→        <div class="flex gap-2 mb-3">
+   963→          <div class="flex-1 relative">
+   964→            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-sm"></i>
+   965→            <input id="searchInput" type="text" placeholder="Search by name or address..." class="w-full pl-10" value="${esc(S.filters.search)}">
+   966→          </div>
+   967→          <button onclick="toggleSearchFilters()" class="btn btn-secondary px-3" title="Filters"><i class="fa-solid fa-sliders"></i></button>
+   968→        </div>
+   969→        <div id="searchFiltersPanel" class="${S.filters.party||S.filters.status||S.filters.precinct||S.filters.volunteer?'':'hidden'} grid grid-cols-2 md:grid-cols-4 gap-2">
+   970→          <select id="sfParty" onchange="applyFilters()"><option value="">All Parties</option>${getFilterOptions('PartyLastPrimary').map(o=>`<option value="${o}" ${S.filters.party===o?'selected':''}>${partyLabel(o)}</option>`).join('')}</select>
+   971→          <select id="sfStatus" onchange="applyFilters()"><option value="">All Statuses</option>${Object.entries(STATUS_CONFIG).map(([k,v])=>`<option value="${k}" ${S.filters.status===k?'selected':''}>${v.label}</option>`).join('')}</select>
+   972→          <select id="sfPrecinct" onchange="applyFilters()"><option value="">All Precincts</option>${getPrecinctOptions().map(o=>`<option value="${o}" ${S.filters.precinct===o?'selected':''}>${esc(o)}</option>`).join('')}</select>
+   973→          <select id="sfVolunteer" onchange="applyFilters()"><option value="">All Volunteers</option>${getVolunteerOptions().map(o=>`<option value="${o}" ${S.filters.volunteer===o?'selected':''}>${esc(o)}</option>`).join('')}</select>
+   974→        </div>
+   975→      </div>
+   976→      <div id="searchResults" class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2"></div>
+   977→    </div>`;
+   978→  const si=$('searchInput');let db;
+   979→  si.oninput=()=>{clearTimeout(db);db=setTimeout(()=>{S.filters.search=si.value.trim();doSearch()},150)};
+   980→  si.focus();doSearch();
+   981→}
+   982→function toggleSearchFilters(){$('searchFiltersPanel').classList.toggle('hidden')}
+   983→function getFilterOptions(field){const s=new Set();S.voters.forEach(v=>{if(v[field])s.add(v[field].trim())});return[...s].sort()}
+   984→function getPrecinctOptions(){const s=new Set();S.households.forEach(h=>{if(h.precinct)s.add(h.precinct)});return[...s].sort()}
+   985→function getVolunteerOptions(){const s=new Set();S.households.forEach(h=>{if(h.assignedTo)s.add(h.assignedTo);h.visits.forEach(v=>{if(v.volunteer)s.add(v.volunteer)})});return[...s].sort()}
+   986→function applyFilters(){
+   987→  S.filters.party=$('sfParty')?.value||'';S.filters.status=$('sfStatus')?.value||'';
+   988→  S.filters.precinct=$('sfPrecinct')?.value||'';S.filters.volunteer=$('sfVolunteer')?.value||'';
+   989→  doSearch();
+   990→}
+   991→function getFilteredHouseholds(){
+   992→  let list=[...S.households.values()];
+   993→  if(S.filters.status)list=list.filter(h=>h.status===S.filters.status);
+   994→  if(S.filters.precinct)list=list.filter(h=>h.precinct===S.filters.precinct);
+   995→  if(S.filters.volunteer)list=list.filter(h=>h.assignedTo===S.filters.volunteer||h.visits.some(v=>v.volunteer===S.filters.volunteer));
+   996→  if(S.filters.party)list=list.filter(h=>h.voters.some(v=>v.PartyLastPrimary===S.filters.party));
+   997→  if(S.filters.search){const q=S.filters.search.toLowerCase();list=list.filter(h=>{if(h.fullAddress.toLowerCase().includes(q))return true;return h.voters.some(v=>(`${v.FirstName||''} ${v.LastName||''} ${v.MidInitial||''}`).toLowerCase().includes(q))})}
+   998→  return list;
+   999→}
+  1000→function doSearch(){
+  1001→  const c=$('searchResults');if(!c)return;
+  1002→  const results=getFilteredHouseholds();
+  1003→  if(!results.length){c.innerHTML=`<div class="text-center py-12"><i class="fa-solid fa-magnifying-glass text-3xl text-muted/30 mb-3 block"></i><p class="text-muted text-sm">${S.households.size?'No households match your search':'No data loaded'}</p></div>`;return}
+  1004→  const show=results.slice(0,200);
+  1005→  c.innerHTML=show.map(h=>{const sc=statusCfg(h.status);const parties=[...new Set(h.voters.map(v=>v.PartyLastPrimary).filter(Boolean))];return`<button onclick="selectHousehold('${h.id}')" class="w-full text-left bg-card hover:bg-cardhover border border-border rounded-xl p-3.5 transition-colors"><div class="flex items-start justify-between gap-3"><div class="min-w-0 flex-1"><p class="font-medium text-sm truncate">${esc(h.fullAddress)}</p><p class="text-xs text-muted mt-0.5">${h.voters.length} voter${h.voters.length>1?'s':''} &middot; ${esc(h.precinct||'No precinct')}</p><div class="flex flex-wrap gap-1 mt-2">${parties.map(p=>`<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background:${partyColor(p)}20;color:${partyColor(p)};border:1px solid ${partyColor(p)}30">${partyLabel(p)}</span>`).join('')}${h.tags.map(t=>`<span class="tag text-[10px]">${esc(t)}</span>`).join('')}</div></div><div class="flex flex-col items-end gap-1 flex-shrink-0"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold" style="background:${sc.bg};color:${sc.color};border:1px solid ${sc.border}"><i class="fa-solid ${sc.icon} text-[10px]"></i>${sc.label}</span>${h.assignedTo?`<span class="text-[10px] text-muted"><i class="fa-solid fa-user text-[8px] mr-1"></i>${esc(h.assignedTo.split(' ')[0])}</span>`:''}</div></div></button>`}).join('');
+  1006→  if(results.length>200)c.innerHTML+=`<p class="text-center text-muted text-xs py-3">Showing 200 of ${results.length} results.</p>`;
+  1007→}
+  1008→
+  1009→/* ========== MAP ========== */
+  1010→function initMap(){
+  1011→  if(S.map){S.map.invalidateSize();updateMapMarkers();return}
+  1012→  const center=S.gpsPos?[S.gpsPos.lat,S.gpsPos.lng]:[35.05,-85.05];
+  1013→  S.map=L.map('mapContainer',{zoomControl:false}).setView(center,13);
+  1014→  L.control.zoom({position:'bottomright'}).addTo(S.map);
+  1015→  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(S.map);
+  1016→  S.markers=L.markerClusterGroup({maxClusterRadius:50,spiderfyOnMaxZoom:true,showCoverageOnHover:false,iconCreateFunction:function(cluster){const count=cluster.getChildCount();let size='small';if(count>50)size='medium';if(count>200)size='large';return L.divIcon({html:`<div>${count}</div>`,className:`marker-cluster marker-cluster-${size}`,iconSize:L.point(40,40)})}});
+  1017→  S.map.addLayer(S.markers);
+  1018→  renderMapFilters();updateMapMarkers();
+  1019→}
+  1020→function renderMapFilters(){
+  1021→  const mf=$('mapFilters');
+  1022→  mf.innerHTML=`
+  1023→    <div class="glass rounded-xl border border-border p-2 flex items-center gap-2 flex-1 min-w-0">
+  1024→      <i class="fa-solid fa-magnifying-glass text-muted text-sm flex-shrink-0"></i>
+  1025→      <input id="mapSearch" type="text" placeholder="Search map..." class="border-0! bg-transparent! shadow-none! p-0! flex-1 min-w-0 text-sm" value="${esc(S.filters.search)}">
+  1026→    </div>
+  1027→    <select id="mfStatus" class="text-xs py-2 px-2.5 flex-shrink-0" onchange="updateMapMarkers()"><option value="">All Status</option>${Object.entries(STATUS_CONFIG).map(([k,v])=>`<option value="${k}" ${S.filters.status===k?'selected':''}>${v.label}</option>`).join('')}</select>
+  1028→    <select id="mfParty" class="text-xs py-2 px-2.5 flex-shrink-0" onchange="updateMapMarkers()"><option value="">All Parties</option>${getFilterOptions('PartyLastPrimary').map(o=>`<option value="${o}" ${S.filters.party===o?'selected':''}>${partyLabel(o)}</option>`).join('')}</select>
+  1029→    ${S.gpsPos?`<button onclick="S.map.setView([${S.gpsPos.lat},${S.gpsPos.lng}],16)" class="btn btn-secondary text-xs py-2 px-3 flex-shrink-0" title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>`:''}`;
+  1030→  let db;$('mapSearch').oninput=()=>{clearTimeout(db);db=setTimeout(()=>{S.filters.search=$('mapSearch').value.trim();updateMapMarkers()},200)};
+  1031→}
+  1032→function updateMapMarkers(){
+  1033→  if(!S.markers)return;S.markers.clearLayers();S.markerMap.clear();
+  1034→  const statusF=$('mfStatus')?.value||'',partyF=$('mfParty')?.value||'',searchF=S.filters.search.toLowerCase();
+  1035→  S.households.forEach(h=>{
+  1036→    if(!h.lat||!h.lng)return;
+  1037→    if(statusF&&h.status!==statusF)return;
+  1038→    if(partyF&&!h.voters.some(v=>v.PartyLastPrimary===partyF))return;
+  1039→    if(searchF){if(!h.fullAddress.toLowerCase().includes(searchF)&&!h.voters.some(v=>(`${v.FirstName||''} ${v.LastName||''}`).toLowerCase().includes(searchF)))return}
+  1040→    const sc=statusCfg(h.status);const parties=[...new Set(h.voters.map(v=>v.PartyLastPrimary).filter(Boolean))];
+  1041→    const icon=L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,14],html:`<div style="width:28px;height:28px;border-radius:50%;background:${sc.color};border:3px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:'Space Grotesk',sans-serif">${h.voters.length}</div>`});
+  1042→    const marker=L.marker([h.lat,h.lng],{icon});
+  1043→    marker.bindPopup(`<div style="min-width:200px;max-width:280px"><p style="font-weight:700;font-size:14px;margin-bottom:4px;font-family:'Space Grotesk',sans-serif">${esc(h.fullAddress)}</p><p style="font-size:12px;color:#8B949E;margin-bottom:8px">${h.voters.length} voter${h.voters.length>1?'s':''} &middot; ${esc(h.precinct||'')}</p><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${parties.map(p=>`<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;background:${partyColor(p)}20;color:${partyColor(p)};border:1px solid ${partyColor(p)}30">${partyLabel(p)}</span>`).join('')}</div><div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;background:${sc.bg};color:${sc.color};border:1px solid ${sc.border}"><i class="fa-solid ${sc.icon}" style="font-size:9px"></i>${sc.label}</div><div style="margin-top:8px"><button onclick="selectHousehold('${h.id}')" style="background:#D4943A;color:#0D1117;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%">View Details</button></div></div>`,{maxWidth:300});
+  1044→    S.markers.addLayer(marker);S.markerMap.set(h.id,marker);
+  1045→  });
+  1046→  const layers=S.markers.getLayers();
+  1047→  if(layers.length&&!S.filters.search&&!statusF&&!partyF){const b=S.markers.getBounds();if(b.isValid())S.map.fitBounds(b,{padding:[40,40],maxZoom:15})}
+  1048→}
+  1049→
+  1050→/* ========== DETAILS PANEL ========== */
+  1051→function selectHousehold(id){
+  1052→  const h=S.households.get(id);if(!h)return;S.selectedId=id;
+  1053→  const panel=$('detailsPanel'),content=$('detailsPanelContent');
+  1054→  const sc=statusCfg(h.status);const parties=[...new Set(h.voters.map(v=>v.PartyLastPrimary).filter(Boolean))];
+  1055→
+  1056→  content.innerHTML=`
+  1057→    <div class="sticky top-0 z-10 glass border-b border-border p-4 flex items-center justify-between">
+  1058→      <h3 class="font-display font-bold text-sm truncate pr-2">Household Details</h3>
+  1059→      <button onclick="closeDetails()" class="text-muted hover:text-fg text-lg flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-border/50"><i class="fa-solid fa-xmark"></i></button>
+  1060→    </div>
+  1061→    <div class="p-4 border-b border-border">
+  1062→      <p class="text-xs text-muted font-medium mb-2 uppercase tracking-wider">Canvassing Status</p>
+  1063→      <div class="grid grid-cols-2 gap-2">
+  1064→        ${Object.entries(STATUS_CONFIG).map(([k,c])=>`<button onclick="setStatus('${id}','${k}')" class="status-btn flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-semibold border transition-all ${h.status===k?'ring-2 ring-offset-1 ring-offset-card opacity-100':'opacity-60 hover:opacity-100'}" style="background:${c.bg};color:${c.color};border-color:${c.border}"><i class="fa-solid ${c.icon}"></i>${c.label}</button>`).join('')}
+  1065→      </div>
+  1066→    </div>
+  1067→    <div class="p-4 border-b border-border">
+  1068→      <p class="text-xs text-muted font-medium mb-2 uppercase tracking-wider">Household Information</p>
+  1069→      <h2 class="font-display text-lg font-bold mb-1">${esc(h.fullAddress)}</h2>
+  1070→      <div class="flex flex-wrap gap-1.5 mb-3">
+  1071→        ${parties.map(p=>`<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style="background:${partyColor(p)}20;color:${partyColor(p)};border:1px solid ${partyColor(p)}30">${partyLabel(p)}</span>`).join('')}
+  1072→        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold" style="background:${sc.bg};color:${sc.color};border:1px solid ${sc.border}"><i class="fa-solid ${sc.icon} text-[9px]"></i>${sc.label}</span>
+  1073→      </div>
+  1074→      <div class="space-y-1 text-xs text-muted">
+  1075→        ${h.precinct?`<p><i class="fa-solid fa-map-pin mr-1.5 w-3 text-center"></i>Precinct: <span class="text-fg font-medium">${esc(h.precinct)}</span></p>`:''}
+  1076→        ${h.district?`<p><i class="fa-solid fa-landmark mr-1.5 w-3 text-center"></i>State House: <span class="text-fg font-medium">${esc(h.district)}</span></p>`:''}
+  1077→        ${h.senateDistrict?`<p><i class="fa-solid fa-building-columns mr-1.5 w-3 text-center"></i>State Senate: <span class="text-fg font-medium">${esc(h.senateDistrict)}</span></p>`:''}
+  1078→        ${h.commissionDistrict?`<p><i class="fa-solid fa-building mr-1.5 w-3 text-center"></i>County Commission: <span class="text-fg font-medium">${esc(h.commissionDistrict)}</span></p>`:''}
+  1079→        ${h.subdivision?`<p><i class="fa-solid fa-tree mr-1.5 w-3 text-center"></i>Subdivision: <span class="text-fg font-medium">${esc(h.subdivision)}</span></p>`:''}
+  1080→        ${h.zoning?`<p><i class="fa-solid fa-ruler-combined mr-1.5 w-3 text-center"></i>Zoning: <span class="text-fg font-medium">${esc(h.zoning)}</span></p>`:''}
+  1081→        ${h.assignedTo?`<p><i class="fa-solid fa-user mr-1.5 w-3 text-center"></i>Assigned: <span class="text-fg font-medium">${esc(h.assignedTo)}</span></p>`:''}
+  1082→        ${h.lat&&h.lng?`<button onclick="panToHousehold('${id}')" class="text-accent hover:underline mt-1 inline-flex items-center gap-1"><i class="fa-solid fa-location-dot"></i>Show on map</button>`:''}
+  1083→      </div>
+  1084→      <div class="mt-3 flex flex-wrap gap-1.5 items-center">
+  1085→        ${h.tags.map(t=>`<span class="tag">${esc(t)} <button onclick="removeTag('${id}','${esc(t)}')" class="ml-0.5 text-accent/60 hover:text-accent">&times;</button></span>`).join('')}
+  1086→        <button onclick="addTagPrompt('${id}')" class="text-[11px] text-muted hover:text-accent border border-dashed border-border rounded-full px-2.5 py-0.5 hover:border-accent/40">+ Tag</button>
+  1087→      </div>
+  1088→    </div>
+  1089→    <div class="p-4 border-b border-border">
+  1090→      <p class="text-xs text-muted font-medium mb-3 uppercase tracking-wider">Registered Voters (${h.voters.length})</p>
+  1091→      <div class="space-y-3">
+  1092→        ${h.voters.map(v=>{const p=v.PartyLastPrimary||'?';const pc=partyColor(p);return`<div class="bg-bg/50 rounded-xl p-3.5 border border-border/50">
+  1093→          <div class="flex items-start gap-3">
+  1094→            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:${pc}20;color:${pc};border:1px solid ${pc}30">${esc((v.FirstName||'?')[0])}</div>
+  1095→            <div class="min-w-0 flex-1">
+  1096→              <p class="font-semibold text-sm">${esc(v.FirstName||'')} ${esc(v.MidInitial||'')} ${esc(v.LastName||'')}</p>
+  1097→              <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted">
+  1098→                ${v.DOB?`<span><i class="fa-regular fa-calendar mr-1"></i>${fmtDate(v.DOB)}</span>`:''}
+  1099→                <span class="inline-flex items-center gap-1" style="color:${pc}"><i class="fa-solid fa-flag text-[9px]"></i>${partyLabel(p)}</span>
+  1100→                ${v.Sex?`<span>${esc(v.Sex)}</span>`:''}
+  1101→                ${v.Race?`<span>${esc(v.Race)}</span>`:''}
+  1102→                ${v.Phone?`<span><a href="tel:${esc(v.Phone)}" class="text-info hover:underline">${fmtPhone(v.Phone)}</a></span>`:''}
+  1103→              </div>
+  1104→              ${v.Email?`<p class="text-xs text-info/70 mt-0.5 truncate"><a href="mailto:${esc(v.Email)}" class="hover:underline">${esc(v.Email)}</a></p>`:''}
+  1105→              ${v.RegDate?`<p class="text-[11px] text-muted mt-0.5">Registered: ${fmtDate(v.RegDate)}</p>`:''}
+  1106→              ${v.LastGenDate?`<p class="text-[11px] text-muted">Voted General: ${fmtDate(v.LastGenDate)}</p>`:''}
+  1107→            </div>
+  1108→          </div>
+  1109→          <details class="mt-2.5">
+  1110→            <summary class="text-[11px] text-muted hover:text-fg cursor-pointer select-none">Show all ${S.headers.length} imported fields</summary>
+  1111→            <div class="mt-2 bg-bg/80 rounded-lg overflow-hidden text-xs max-h-72 overflow-y-auto">
+  1112→              <table class="w-full"><tbody>${S.headers.map(f=>{const val=v[f];if(val===undefined||val===null||val==='')return'';const label=fieldLabel(f);let display=esc(String(val));/* Format known value types */if(f.toLowerCase().includes('price')||f.toLowerCase().includes('value')||f.toLowerCase().includes('assessed')||f.toLowerCase().includes('appraised')||f.toLowerCase().includes('landvalue')||f.toLowerCase().includes('buildingvalue')||f.toLowerCase().includes('othervalue')){const n=parseFloat(val);if(!isNaN(n)&&n>0)display=fmtCurrency(val)}return`<tr class="field-row border-b border-border/30"><td class="py-1.5 px-3 text-muted font-medium whitespace-nowrap w-2/5">${esc(label)}</td><td class="py-1.5 px-3 text-fg break-all">${display}</td></tr>`}).join('')}</tbody></table>
+  1113→            </div>
+  1114→          </details>
+  1115→        </div>`}).join('')}
+  1116→      </div>
+  1117→    </div>
+  1118→    <div class="p-4 border-b border-border">
+  1119→      <div class="flex items-center justify-between mb-3">
+  1120→        <p class="text-xs text-muted font-medium uppercase tracking-wider">Canvassing History (${h.visits.length})</p>
+  1121→        <button onclick="openVisitModal('${id}')" class="btn btn-primary text-xs py-1.5 px-3"><i class="fa-solid fa-plus"></i> Record Visit</button>
+  1122→      </div>
+  1123→      ${h.visits.length?`<div class="space-y-2 max-h-64 overflow-y-auto">${[...h.visits].reverse().map(v=>{const vsc=statusCfg(v.statusAfter||'not_visited');return`<div class="bg-bg/50 rounded-lg p-3 border border-border/50"><div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold text-fg">${esc(v.volunteer)}</span><span class="text-[10px] text-muted">${fmtDateTime(v.date+'T'+v.time)}</span></div><p class="text-xs text-muted mb-1"><i class="fa-solid fa-flag-checkered mr-1"></i>${esc(v.outcome)}</p>${v.notes?`<p class="text-xs text-fg/70 italic">"${esc(v.notes)}"</p>`:''}<span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded text-[10px] font-semibold" style="background:${vsc.bg};color:${vsc.color};border:1px solid ${vsc.border}">${vsc.label}</span></div>`}).join('')}</div>`:`<p class="text-xs text-muted">No visits recorded yet.</p>`}
+  1124→      ${h.visits.length?`<p class="text-[10px] text-muted mt-2">Last visit: ${fmtDateTime(h.visits[h.visits.length-1].date+'T'+h.visits[h.visits.length-1].time)}</p>`:''}
+  1125→    </div>
+  1126→    <div class="p-4">
+  1127→      <p class="text-xs text-muted font-medium mb-2 uppercase tracking-wider">Household Notes</p>
+  1128→      <textarea id="householdNotes" rows="3" placeholder="Add notes about this household..." class="w-full text-sm">${esc(h.notes)}</textarea>
+  1129→      <button onclick="saveNotes('${id}')" class="btn btn-secondary text-xs py-2 mt-2 w-full justify-center"><i class="fa-solid fa-floppy-disk"></i> Save Notes</button>
+  1130→      <div class="mt-4"><p class="text-xs text-muted font-medium mb-2">Assign Volunteer</p><div class="flex gap-2"><input id="assignInput" type="text" placeholder="Volunteer name" class="flex-1 text-sm" value="${esc(h.assignedTo)}"><button onclick="assignVolunteer('${id}')" class="btn btn-secondary text-xs py-2 px-3">Assign</button></div></div>
+  1131→    </div>`;
+  1132→
+  1133→  panel.classList.remove('hidden');panel.classList.add('slide-in');panel.classList.remove('slide-out');
+  1134→  if(isMobile()&&S.currentView!=='map')switchView('map');
+  1135→}
+  1136→
+  1137→function closeDetails(){
+  1138→  const p=$('detailsPanel');p.classList.add('slide-out');p.classList.remove('slide-in');
+  1139→  setTimeout(()=>{p.classList.add('hidden');p.classList.remove('slide-out');S.selectedId=null},250);
+  1140→}
+  1141→function panToHousehold(id){
+  1142→  const h=S.households.get(id);if(!h||!h.lat||!h.lng)return;
+  1143→  if(S.currentView!=='map')switchView('map');
+  1144→  setTimeout(()=>{S.map.setView([h.lat,h.lng],17);const m=S.markerMap.get(id);if(m)m.openPopup()},200);
+  1145→}
+  1146→
+  1147→/* ========== CANVASSING ACTIONS ========== */
+  1148→function setStatus(id,status){
+  1149→  const h=S.households.get(id);if(!h)return;h.status=status;
+  1150→  const dbId=S.householdDbIds.get(id);
+  1151→  if(dbId){fetch(`/api/households/${dbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}).catch(e=>toast('Failed to save status: '+e.message,'err'))}
+  1152→  toast(`Status: ${STATUS_CONFIG[status].label}`,'ok');selectHousehold(id);
+  1153→  if(S.currentView==='map')updateMapMarkers();if(S.currentView==='search')doSearch();
+  1154→}
+  1155→function saveNotes(id){
+  1156→  const h=S.households.get(id);if(!h)return;h.notes=$('householdNotes').value;
+  1157→  const dbId=S.householdDbIds.get(id);
+  1158→  if(dbId){fetch(`/api/households/${dbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notes:h.notes})}).catch(e=>toast('Failed to save notes: '+e.message,'err'))}
+  1159→  toast('Notes saved','ok');
+  1160→}
+  1161→function assignVolunteer(id){
+  1162→  const h=S.households.get(id);if(!h)return;const name=$('assignInput').value.trim();h.assignedTo=name;
+  1163→  const dbId=S.householdDbIds.get(id);
+  1164→  if(dbId){fetch(`/api/households/${dbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({assignedTo:name})}).catch(e=>toast('Failed to save assignment: '+e.message,'err'))}
+  1165→  toast(name?`Assigned to ${name}`:'Assignment cleared','ok');selectHousehold(id);
+  1166→}
+  1167→function removeTag(id,tag){
+  1168→  const h=S.households.get(id);if(!h)return;h.tags=h.tags.filter(t=>t!==tag);
+  1169→  const dbId=S.householdDbIds.get(id);
+  1170→  if(dbId){fetch(`/api/households/${dbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags:h.tags})}).catch(e=>toast('Failed to update tags: '+e.message,'err'))}
+  1171→  selectHousehold(id);
+  1172→}
+  1173→function addTagPrompt(id){
+  1174→  const tag=prompt('Enter tag name:');if(!tag||!tag.trim())return;
+  1175→  const h=S.households.get(id);if(!h)return;if(!h.tags.includes(tag.trim()))h.tags.push(tag.trim());
+  1176→  const dbId=S.householdDbIds.get(id);
+  1177→  if(dbId){fetch(`/api/households/${dbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags:h.tags})}).catch(e=>toast('Failed to update tags: '+e.message,'err'))}
+  1178→  selectHousehold(id);
+  1179→}
+  1180→
+  1181→/* ========== VISIT MODAL ========== */
+  1182→function openVisitModal(id){
+  1183→  const h=S.households.get(id);if(!h)return;const now=new Date();
+  1184→  $('visitModalBody').innerHTML=`
+  1185→    <div><label class="block text-sm font-medium text-muted mb-1.5">Volunteer Name</label><input id="vmVolunteer" type="text" value="${esc(S.user.name)}" class="w-full"></div>
+  1186→    <div class="grid grid-cols-2 gap-3">
+  1187→      <div><label class="block text-sm font-medium text-muted mb-1.5">Date</label><input id="vmDate" type="date" value="${now.toISOString().slice(0,10)}" class="w-full"></div>
+  1188→      <div><label class="block text-sm font-medium text-muted mb-1.5">Time</label><input id="vmTime" type="time" value="${now.toTimeString().slice(0,5)}" class="w-full"></div>
+  1189→    </div>
+  1190→    <div><label class="block text-sm font-medium text-muted mb-1.5">Visit Outcome</label><select id="vmOutcome" class="w-full">${OUTCOMES.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>
+  1191→    <div><label class="block text-sm font-medium text-muted mb-1.5">Status After Visit</label><select id="vmStatus" class="w-full">${Object.entries(STATUS_CONFIG).map(([k,v])=>`<option value="${k}" ${h.status===k?'selected':''}>${v.label}</option>`).join('')}</select></div>
+  1192→    <div><label class="block text-sm font-medium text-muted mb-1.5">Notes</label><textarea id="vmNotes" rows="3" placeholder="What happened during the visit..." class="w-full"></textarea></div>
+  1193→    <button onclick="submitVisit('${id}')" class="btn btn-primary w-full justify-center py-3 text-base"><i class="fa-solid fa-check"></i> Record Visit</button>`;
+  1194→  $('visitModal').classList.remove('hidden');
+  1195→}
+  1196→function closeVisitModal(){$('visitModal').classList.add('hidden')}
+  1197→function submitVisit(id){
+  1198→  const h=S.households.get(id);if(!h)return;
+  1199→  const visit={volunteer:$('vmVolunteer').value.trim()||'Unknown',date:$('vmDate').value,time:$('vmTime').value,outcome:$('vmOutcome').value,statusAfter:$('vmStatus').value,notes:$('vmNotes').value.trim()};
+  1200→  if(!visit.date){toast('Please enter a date','warn');return}
+  1201→  h.visits.push(visit);h.status=visit.statusAfter;
+  1202→  closeVisitModal();toast('Visit recorded','ok');selectHousehold(id);
+  1203→  const dbId=S.householdDbIds.get(id);
+  1204→  if(dbId){fetch(`/api/households/${dbId}/visits`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(visit)}).catch(e=>toast('Failed to save visit: '+e.message,'err'))}
+  1205→  if(S.currentView==='map')updateMapMarkers();if(S.currentView==='search')doSearch();
+  1206→}
+  1207→
+  1208→/* ========== GPS ========== */
+  1209→function initGPS(){
+  1210→  if(!navigator.geolocation)return;
+  1211→  navigator.geolocation.getCurrentPosition(pos=>{
+  1212→    S.gpsPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+  1213→    const el=$('gpsIndicator');el.classList.remove('hidden');el.classList.add('flex');
+  1214→  },()=>{},{enableHighAccuracy:true,timeout:10000});
+  1215→}
+  1216→
+  1217→/* ========== INIT ========== */
+  1218→function init(){
+  1219→  initAuth();initGPS();
+  1220→  $('visitModal').onclick=e=>{if(e.target===$('visitModal'))closeVisitModal()};
+  1221→  document.onkeydown=e=>{if(e.key==='Escape'){if(!$('visitModal').classList.contains('hidden'))closeVisitModal();else if(!$('detailsPanel').classList.contains('hidden'))closeDetails()}};
+  1222→}
+  1223→init();
+  1224→</script>
+  1225→</body>
+  1226→</html>
