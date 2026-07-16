@@ -348,7 +348,9 @@ let S={
 /* ========== UTILITIES ========== */
 const $=id=>document.getElementById(id);
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
-const fmtDate=d=>{if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch{return d}};
+const parseDate=d=>{if(!d)return null;const s=String(d).trim();if(!s)return null;/* MM/DD/YYYY */const m=s.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})$/);if(m)return new Date(+m[3],+m[1]-1,+m[2]);/* YYYY-MM-DD or ISO */let dt=new Date(s);return isNaN(dt.getTime())?null:dt};
+const fmtDate=d=>{const dt=parseDate(d);if(!dt)return d||'—';return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
+const calcAge=d=>{const dt=parseDate(d);if(!dt)return null;const today=new Date();let age=today.getFullYear()-dt.getFullYear();const m=today.getMonth()-dt.getMonth();if(m<0||(m===0&&today.getDate()<dt.getDate()))age--;return age};
 const fmtDateTime=dt=>{if(!dt)return'—';try{return new Date(dt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}catch{return dt}};
 const fmtPhone=p=>{if(!p)return'—';const c=p.replace(/\D/g,'');if(c.length===10)return`(${c.slice(0,3)}) ${c.slice(3,6)}-${c.slice(6)}`;if(c.length===11&&c[0]==='1')return`(${c.slice(1,4)}) ${c.slice(4,7)}-${c.slice(7)}`;return p};
 const fmtCurrency=v=>{if(!v)return'—';const n=parseFloat(v);if(isNaN(n))return v;return'$'+n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})};
@@ -1095,7 +1097,7 @@ function selectHousehold(id){
             <div class="min-w-0 flex-1">
               <p class="font-semibold text-sm">${esc(v.FirstName||'')} ${esc(v.MidInitial||'')} ${esc(v.LastName||'')}</p>
               <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-muted">
-                ${v.DOB?`<span><i class="fa-regular fa-calendar mr-1"></i>${fmtDate(v.DOB)}</span>`:''}
+                ${v.DOB?`<span><i class="fa-regular fa-calendar mr-1"></i>${fmtDate(v.DOB)}<span class="ml-1 text-fg/50 font-medium">(${calcAge(v.DOB)}y)</span></span>`:''}
                 <span class="inline-flex items-center gap-1" style="color:${pc}"><i class="fa-solid fa-flag text-[9px]"></i>${partyLabel(p)}</span>
                 ${v.Sex?`<span>${esc(v.Sex)}</span>`:''}
                 ${v.Race?`<span>${esc(v.Race)}</span>`:''}
