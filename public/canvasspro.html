@@ -176,7 +176,7 @@ textarea{resize:vertical;min-height:80px}
   </div>
 
   <!-- User Modal -->
-  <div id="userModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="display:none">
+  <div id="userModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
     <div class="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
       <h3 id="userModalTitle" class="font-display text-lg font-bold mb-4">Add User</h3>
       <input type="hidden" id="umId">
@@ -219,7 +219,7 @@ textarea{resize:vertical;min-height:80px}
 
 <div id="toastContainer" class="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none"></div>
 
-<div id="visitModal" class="hidden fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60">
+<div id="visitModal" class="hidden fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/60">
   <div class="bg-card border border-border rounded-t-2xl md:rounded-2xl w-full md:max-w-lg max-h-[90vh] overflow-y-auto slide-in">
     <div class="p-5 border-b border-border flex items-center justify-between">
       <h3 class="font-display font-bold text-lg">Record Visit</h3>
@@ -1290,9 +1290,9 @@ function openUserModal(user){
   $('umPwHint').textContent=user?'(leave blank to keep current)':'';
   $('umUsername').readOnly=!!user;
   $('umUsername').style.opacity=user?0.5:1;
-  const m=$('userModal');m.classList.remove('hidden');m.style.display='flex';
+  const m=$('userModal');m.classList.remove('hidden');
 }
-function closeUserModal(){const m=$('userModal');m.classList.add('hidden');m.style.display='none'}
+function closeUserModal(){$('userModal').classList.add('hidden')}
 
 async function saveUser(){
   const id=$('umId').value;
@@ -1341,7 +1341,7 @@ function init(){
   initAuth();initGPS();
   $('visitModal').onclick=e=>{if(e.target===$('visitModal'))closeVisitModal()};
   $('userModal').onclick=e=>{if(e.target===$('userModal'))closeUserModal()};
-  document.onkeydown=e=>{if(e.key==='Escape'){if(!$('userModal').classList.contains('hidden')&&$('userModal').style.display!=='none')closeUserModal();else if(!$('visitModal').classList.contains('hidden'))closeVisitModal();else if(!$('detailsPanel').classList.contains('hidden'))closeDetails()}};
+  document.onkeydown=e=>{if(e.key==='Escape'){if(!$('userModal').classList.contains('hidden'))closeUserModal();else if(!$('visitModal').classList.contains('hidden'))closeVisitModal();else if(!$('detailsPanel').classList.contains('hidden'))closeDetails()}};
 }
 init();
 </script>
