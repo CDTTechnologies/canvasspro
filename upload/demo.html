@@ -175,24 +175,6 @@ textarea{resize:vertical;min-height:80px}
     </div>
   </div>
 
-  <!-- User Modal -->
-  <div id="userModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div class="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
-      <h3 id="userModalTitle" class="font-display text-lg font-bold mb-4">Add User</h3>
-      <input type="hidden" id="umId">
-      <div class="space-y-3">
-        <div><label class="block text-xs font-medium text-muted mb-1">Full Name</label><input id="umName" type="text" placeholder="John Smith" class="w-full text-sm"></div>
-        <div><label class="block text-xs font-medium text-muted mb-1">Username</label><input id="umUsername" type="text" placeholder="jsmith" class="w-full text-sm"></div>
-        <div><label class="block text-xs font-medium text-muted mb-1">Password <span id="umPwHint" class="text-muted/50">(leave blank to keep current)</span></label><input id="umPassword" type="password" placeholder="••••••••" class="w-full text-sm"></div>
-        <div><label class="block text-xs font-medium text-muted mb-1">Role</label><select id="umRole" class="w-full text-sm"><option value="admin">Admin</option><option value="staff">Staff</option><option value="volunteer">Volunteer</option></select></div>
-      </div>
-      <div class="flex gap-2 mt-5">
-        <button onclick="saveUser()" class="btn btn-primary flex-1 justify-center"><i class="fa-solid fa-check"></i> Save</button>
-        <button onclick="closeUserModal()" class="btn btn-secondary flex-1 justify-center">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <nav class="mobile-only glass border-t border-border flex-shrink-0 z-40 flex items-center justify-around h-16">
     <button onclick="switchView('dashboard')" data-nav="dashboard" class="nav-item flex flex-col items-center gap-0.5 py-1 px-3 text-muted">
       <i class="fa-solid fa-chart-pie text-lg"></i><span class="text-[10px] font-medium">Dashboard</span>
@@ -219,13 +201,31 @@ textarea{resize:vertical;min-height:80px}
 
 <div id="toastContainer" class="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none"></div>
 
-<div id="visitModal" class="hidden fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/60">
+<div id="visitModal" class="hidden fixed inset-0 flex items-end md:items-center justify-center bg-black/60" style="z-index:9998">
   <div class="bg-card border border-border rounded-t-2xl md:rounded-2xl w-full md:max-w-lg max-h-[90vh] overflow-y-auto slide-in">
     <div class="p-5 border-b border-border flex items-center justify-between">
       <h3 class="font-display font-bold text-lg">Record Visit</h3>
       <button onclick="closeVisitModal()" class="text-muted hover:text-fg text-xl"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div id="visitModalBody" class="p-5 space-y-4"></div>
+  </div>
+</div>
+
+<!-- User Modal -->
+<div id="userModal" class="hidden fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style="z-index:9999">
+  <div class="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+    <h3 id="userModalTitle" class="font-display text-lg font-bold mb-4">Add User</h3>
+    <input type="hidden" id="umId">
+    <div class="space-y-3">
+      <div><label class="block text-xs font-medium text-muted mb-1">Full Name</label><input id="umName" type="text" placeholder="John Smith" class="w-full text-sm"></div>
+      <div><label class="block text-xs font-medium text-muted mb-1">Username</label><input id="umUsername" type="text" placeholder="jsmith" class="w-full text-sm"></div>
+      <div><label class="block text-xs font-medium text-muted mb-1">Password <span id="umPwHint" class="text-muted/50">(leave blank to keep current)</span></label><input id="umPassword" type="password" placeholder="••••••••" class="w-full text-sm"></div>
+      <div><label class="block text-xs font-medium text-muted mb-1">Role</label><select id="umRole" class="w-full text-sm"><option value="admin">Admin</option><option value="staff">Staff</option><option value="volunteer">Volunteer</option></select></div>
+    </div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="saveUser()" class="btn btn-primary flex-1 justify-center"><i class="fa-solid fa-check"></i> Save</button>
+      <button onclick="closeUserModal()" class="btn btn-secondary flex-1 justify-center">Cancel</button>
+    </div>
   </div>
 </div>
 
