@@ -1058,19 +1058,27 @@ function initMap(){
 }
 function renderMapFilters(){
   const mf=$('mapFilters');
+  const statuses=[['','All',null,'#8B949E','rgba(139,148,158,.12)','rgba(139,148,158,.25)','fa-border-all'],...Object.entries(STATUS_CONFIG).map(([k,v])=>[k,v.label,v.icon,v.color,v.bg,v.border])];
   mf.innerHTML=`
     <div class="glass rounded-xl border border-border p-2 flex items-center gap-2 flex-1 min-w-0">
       <i class="fa-solid fa-magnifying-glass text-muted text-sm flex-shrink-0"></i>
       <input id="mapSearch" type="text" placeholder="Search map..." class="border-0! bg-transparent! shadow-none! p-0! flex-1 min-w-0 text-sm" value="${esc(S.filters.search)}">
     </div>
-    <select id="mfStatus" class="text-xs py-2 px-2.5 flex-shrink-0" onchange="updateMapMarkers()"><option value="">All Status</option>${Object.entries(STATUS_CONFIG).map(([k,v])=>`<option value="${k}" ${S.filters.status===k?'selected':''}>${v.label}</option>`).join('')}</select>
+    <div class="flex gap-1.5 flex-wrap">
+      ${statuses.map(([k,label,icon,color,bg,border])=>`<button onclick="setMapStatusFilter('${k}')" class="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg text-[11px] font-semibold border transition-all ${S.filters.status===k?'ring-2 ring-offset-1 ring-offset-bg opacity-100':'opacity-50 hover:opacity-80'}" style="background:${bg};color:${color};border-color:${border}" title="${label}">${icon?`<i class="fa-solid ${icon} text-[10px]"></i>`:''}<span class="hidden sm:inline">${label}</span></button>`).join('')}
+    </div>
     <select id="mfParty" class="text-xs py-2 px-2.5 flex-shrink-0" onchange="updateMapMarkers()"><option value="">All Parties</option>${getFilterOptions('PartyLastPrimary').map(o=>`<option value="${o}" ${S.filters.party===o?'selected':''}>${partyLabel(o)}</option>`).join('')}</select>
     ${S.gpsPos?`<button onclick="S.map.setView([${S.gpsPos.lat},${S.gpsPos.lng}],16)" class="btn btn-secondary text-xs py-2 px-3 flex-shrink-0" title="My Location"><i class="fa-solid fa-location-crosshairs"></i></button>`:''}`;
   let db;$('mapSearch').oninput=()=>{clearTimeout(db);db=setTimeout(()=>{S.filters.search=$('mapSearch').value.trim();updateMapMarkers()},200)};
 }
+function setMapStatusFilter(status){
+  S.filters.status=status;
+  renderMapFilters();
+  updateMapMarkers();
+}
 function updateMapMarkers(){
   if(!S.markers)return;S.markers.clearLayers();S.markerMap.clear();
-  const statusF=$('mfStatus')?.value||'',partyF=$('mfParty')?.value||'',searchF=S.filters.search.toLowerCase();
+  const statusF=S.filters.status||'',partyF=$('mfParty')?.value||'',searchF=S.filters.search.toLowerCase();
   S.households.forEach(h=>{
     if(!h.lat||!h.lng)return;
     if(statusF&&h.status!==statusF)return;
